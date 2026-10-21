@@ -3,9 +3,9 @@
   "severity": "p3",
   "claim_type": "no_billing_claim",
   "language": "en",
-  "reply_body": "You need a GST invoice for your annual payment, with your company name and GSTIN on it for reimbursement. I've passed your billing details to our team so the invoice can be generated with those details and emailed to the address on your account. If you need it in a particular format for your reimbursement claim, just reply here and we'll sort that out.",
+  "reply_body": "You need a GST invoice for your annual payment with your company name and GSTIN on it for reimbursement. Our billing team will generate the invoice with the details you've provided and send it to the email address on your account. If anything on the GSTIN or company name needs correcting before it's issued, just reply here.",
   "needs_human": false,
   "confidence": 0.93,
   "prompt_injection_suspected": false,
-  "summary": "User requests GST invoice for annual payment with company name and GSTIN for reimbursement."
+  "summary": "User requests GST invoice for annual renewal payment with company name and GSTIN for reimbursement."
 }

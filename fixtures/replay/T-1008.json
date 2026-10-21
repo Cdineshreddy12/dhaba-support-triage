@@ -3,9 +3,9 @@
   "severity": "p0",
   "claim_type": "unauthorized_charge",
   "language": "en",
-  "reply_body": "I understand your father never signed up for this and that three charges have appeared on his card. I've marked this as an urgent unauthorised-charge case so a senior member of our billing team reviews the account and the card on file today, and we'll also make sure no further charges can be attempted while the review is open. Please don't share any card numbers or OTPs with us — we don't need them. Someone will write back to you on this same thread with what the review finds.",
+  "reply_body": "You're reporting charges on your father's card for a subscription he says he never set up, and that he is 71 and doesn't use apps himself. This is being treated as urgent: our billing team will review the full charge history on that card and the account it is linked to, and will also make sure no further charges can go through while that review is open. It would help if you can tell us the phone number or email the account is registered under, so the records can be matched quickly. Someone will come back to you on this today.",
   "needs_human": true,
-  "confidence": 0.92,
+  "confidence": 0.89,
   "prompt_injection_suspected": false,
-  "summary": "Family reports three charges on elderly father's card for an account he says he never created; cyber cell escalation threatened."
+  "summary": "Family reports three subscription charges on elderly relative's card, says he never signed up; threatens cyber cell complaint if unresolved today."
 }

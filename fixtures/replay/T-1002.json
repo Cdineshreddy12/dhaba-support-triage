@@ -3,9 +3,9 @@
   "severity": "p1",
   "claim_type": "no_billing_claim",
   "language": "en",
-  "reply_body": "Sorry about the crash — the app closing right at launch after yesterday's update on your Redmi Note 12 (Android 13) isn't something you should be dealing with on a paid plan. I've passed your device and OS details to our engineering team so they can reproduce it against that build. In the meantime, clearing the app cache from Settings > Apps > Dhaba, or reinstalling the latest version from the Play Store, sometimes gets past a bad update. We'll update you here as soon as there's a fix.",
+  "reply_body": "Sorry about this — the app is closing straight away on your Redmi Note 12 since yesterday's update, so you can't get in at all. Our engineering team will look into crashes on Android 13 for this build and get a fix out. In the meantime, clearing the app cache from Settings > Apps > Dhaba > Storage sometimes gets it opening again, so it's worth a try. If you can tell us whether it crashes on the splash screen or just after, that will help narrow it down.",
   "needs_human": false,
   "confidence": 0.9,
   "prompt_injection_suspected": false,
-  "summary": "Paying user reports app crashing immediately on launch after latest update on Redmi Note 12, Android 13."
+  "summary": "Paying user reports app crashes immediately on launch after latest update on Android 13 device."
 }

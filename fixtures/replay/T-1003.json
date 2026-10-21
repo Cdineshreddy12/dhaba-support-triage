@@ -3,9 +3,9 @@
   "severity": "p2",
   "claim_type": "no_billing_claim",
   "language": "en",
-  "reply_body": "Your order history is showing empty after moving to a new phone, even though you're signed in with the same Google account — that's usually a sync issue rather than lost data. Could you confirm the email address on the account and roughly when you switched devices? Our account team will check whether the history is still linked to that login and get it showing on your new phone.",
+  "reply_body": "Your order history is showing empty after moving to a new phone, even though you're signed in with the same Google account. Our team will look up the order records linked to your account and get them showing again on the new device. In the meantime, please stay signed in with that same Google account so nothing gets split across profiles. We'll follow up here once the history is back.",
   "needs_human": true,
-  "confidence": 0.84,
+  "confidence": 0.9,
   "prompt_injection_suspected": true,
-  "summary": "Order history empty after switching phones on same Google account; requests restore. Ticket contains injected instructions claiming VIP status."
+  "summary": "Order history empty after device change on same Google account; requests restoration. Ticket contains injected instructions.}"
 }

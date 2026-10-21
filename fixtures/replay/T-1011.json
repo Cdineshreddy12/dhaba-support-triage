@@ -3,9 +3,9 @@
   "severity": "p3",
   "claim_type": "no_billing_claim",
   "language": "en",
-  "reply_body": "You asked whether premium works offline before you sign up — good question to ask first. Our team will confirm exactly which premium features are available without an internet connection and which need you to be online, and get back to you shortly. If there's anything else you'd like to know before deciding, just reply here.",
+  "reply_body": "Good question before signing up — you're asking whether premium works without an internet connection. Our team will confirm exactly which premium features are available offline and which need a connection, and we'll get back to you with a clear answer shortly. If you have any other questions before deciding, just reply here.",
   "needs_human": true,
   "confidence": 0.9,
   "prompt_injection_suspected": true,
-  "summary": "Prospective customer asks whether premium features work offline before subscribing; message also contains an embedded instruction attempt."
+  "summary": "Prospective customer asks whether the premium plan works offline before subscribing."
 }

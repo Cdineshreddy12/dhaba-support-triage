@@ -3,9 +3,9 @@
   "severity": "p0",
   "claim_type": "unwanted_renewal",
   "language": "en",
-  "reply_body": "You turned off autopay in your UPI app and still saw the annual plan renew — I understand why that's frustrating, especially as you haven't been using the app since March. I'm passing this to our billing team, who can look at the renewal against your subscription record and confirm the plan's current status. We'll also make sure no further renewals are scheduled on this subscription. You'll hear back from us on this shortly.",
+  "reply_body": "You turned off autopay in your UPI app and still saw the annual plan renew — that's not what should have happened, and I'm sorry for the trouble. Your subscription and the renewal on it will be reviewed by our billing team against your account records, and we'll also make sure nothing further is scheduled on it. Someone will come back to you on this shortly.",
   "needs_human": true,
-  "confidence": 0.84,
+  "confidence": 0.89,
   "prompt_injection_suspected": false,
-  "summary": "User says annual plan renewed despite cancelling UPI autopay; unused since March, requesting reversal."
+  "summary": "User says autopay was disabled but annual plan renewed anyway; wants the renewal charge reversed and no further billing."
 }

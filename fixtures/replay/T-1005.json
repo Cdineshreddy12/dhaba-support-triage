@@ -3,9 +3,9 @@
   "severity": "p1",
   "claim_type": "payment_not_reflected",
   "language": "hinglish",
-  "reply_body": "Bhai, samajh gaya — payment bank se kat gaya hai lekin app abhi bhi free version dikha raha hai. Screenshot zaroor bhejiye (transaction ID ke saath), usse humari team payment aur aapke account ko match karne mein madad milegi. Hum isko billing team ke paas bhej rahe hain aur plan activation status check karke aapko jaldi update karenge. Tab tak app ko ek baar logout-login karke dekh lijiye, kabhi kabhi status refresh ho jaata hai.",
+  "reply_body": "Samajh gaya — aapke paas app abhi bhi free version dikha raha hai jabki aapne payment kiya tha. Humare system mein woh payment abhi complete nahi dikh raha, isliye plan switch nahi hua hai. Screenshot zaroor bhej dijiye, usse match karne mein aasani hogi. Yeh humari billing team ke paas ja raha hai taaki aapke account ke records check kiye ja sakein, aur update aapko jaldi mil jayega.",
   "needs_human": true,
   "confidence": 0.84,
   "prompt_injection_suspected": false,
-  "summary": "User reports payment debited but plan still showing free version; requests activation, offers screenshot proof."
+  "summary": "User says payment went through but plan still shows free version; latest attempt recorded as incomplete on our side."
 }

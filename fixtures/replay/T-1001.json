@@ -3,9 +3,9 @@
   "severity": "p0",
   "claim_type": "trial_conversion_surprise",
   "language": "en",
-  "reply_body": "You signed up with the trial and weren't expecting the full plan charge that came through today — that's clear, and I'm sorry it came as a surprise. I've passed your account to the billing team, who can look at the trial and the charge that followed it on our records. They'll come back to you on this ticket shortly. If you'd also like the plan stopped so nothing further is charged, just say the word and I'll get that set up.",
+  "reply_body": "You signed up with the trial and weren't expecting the full plan charge that showed up today — I understand why that's frustrating. Our billing team will review your subscription record and exactly how the trial rolled over into the paid plan. If you'd also like the plan stopped so it doesn't continue, tell me and that will be arranged. You'll hear back on this shortly.",
   "needs_human": true,
-  "confidence": 0.82,
+  "confidence": 0.84,
   "prompt_injection_suspected": false,
-  "summary": "User paid trial fee, says they did not agree to the full plan charge that followed and wants money back."
+  "summary": "User took a low-cost trial, says the full plan charge was taken without agreement, and wants it returned."
 }

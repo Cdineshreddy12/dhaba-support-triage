@@ -3,9 +3,9 @@
   "severity": "p2",
   "claim_type": "cancellation",
   "language": "en",
-  "reply_body": "Got it — you want the plan cancelled. I've passed this to the billing team to stop any future charges on your account, and we'll confirm once it's done. If you also want to tell us why you're cancelling, reply here and it goes straight to the team.",
+  "reply_body": "Got it — you want the plan cancelled. Can you confirm it's the subscription on this account you want stopped, so nothing renews going forward? Once you confirm, our team will action the cancellation and send you a note when it's done.",
   "needs_human": true,
   "confidence": 0.45,
   "prompt_injection_suspected": false,
-  "summary": "One-word request to cancel subscription; no details given."
+  "summary": "One-word request to cancel; intent and scope unconfirmed, recent trial charge on account."
 }
