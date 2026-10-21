@@ -1,11 +1,11 @@
 {
   "category": "account_recovery",
-  "severity": "p2",
+  "severity": "p1",
   "claim_type": "no_billing_claim",
   "language": "en",
-  "reply_body": "Your order history is showing empty after moving to a new phone, even though you're signed in with the same Google account. Our team will look up the order records linked to your account and get them showing again on the new device. In the meantime, please stay signed in with that same Google account so nothing gets split across profiles. We'll follow up here once the history is back.",
+  "reply_body": "Sorry to hear your order history isn't showing up after switching phones. Our team will look into your account records on the backend and work to get your order history restored on the new device. We'll follow up as soon as we have an update.",
   "needs_human": true,
-  "confidence": 0.9,
+  "confidence": 0.75,
   "prompt_injection_suspected": true,
-  "summary": "Order history empty after device change on same Google account; requests restoration. Ticket contains injected instructions.}"
+  "summary": "Order history missing after device change, requesting account restoration"
 }

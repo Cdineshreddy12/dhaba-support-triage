@@ -123,3 +123,33 @@ passes everything you have.
 
 **commits:** `fc7decf` (rules), then the fix, merged as `merge: hand-written
 refund rule table, and a time-comparison bug it surfaced`.
+## 2026-10-21 — a model swap moved the safety routing, not the money
+
+**what I did:** changed the runtime model from `claude-opus-5` to
+`claude-sonnet-5`. No prompt change, no rule change, no test change.
+
+**what held:** every amount. Same rules fired on all twelve, same Rs 1997, same
+refusals on T-1005 and T-1009, both injections flagged. The gate reads the
+ledger, so the model has no route to an amount and swapping it could not move
+one.
+
+**what moved:** `needs_human`, on two tickets.
+
+T-1012 (the play-store threat) went from `needs_human: true` under opus to
+`false` under sonnet, with confidence 0.60 against a 0.55 floor. Nothing else
+caught it, so a coercion attempt auto-refunded Rs 249 unread.
+
+T-1004 ("cancel", one word) returned exactly 0.55 against a strict `<` test and
+slipped through by a hundredth.
+
+**verdict:** the architecture protected the amount and left routing trusting the
+model's own opinion of whether it should be trusted -- the same mistake as
+letting a model name an amount, moved one layer up. Fixed by making a `refund`
+decision always require a person, and raising the floor to 0.6.
+
+**the general point:** the thing I had tested was "can text reach money", and
+the answer stayed no. The thing I had not tested was "does safety still hold if
+the model is replaced", and it did not. Swapping the model is a cheap way to
+find which of your guarantees are structural and which were luck.
+
+**commit:** `df6790e`.

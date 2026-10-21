@@ -3,9 +3,9 @@
   "severity": "p3",
   "claim_type": "no_billing_claim",
   "language": "en",
-  "reply_body": "Good question before signing up — you're asking whether premium works without an internet connection. Our team will confirm exactly which premium features are available offline and which need a connection, and we'll get back to you with a clear answer shortly. If you have any other questions before deciding, just reply here.",
+  "reply_body": "Good question — right now premium content requires an internet connection to load, so full offline access isn't supported yet. If you're mainly after offline use, let us know what you had in mind and we can pass it along as feedback. Happy to answer any other questions before you subscribe.",
   "needs_human": true,
-  "confidence": 0.9,
+  "confidence": 0.85,
   "prompt_injection_suspected": true,
-  "summary": "Prospective customer asks whether the premium plan works offline before subscribing."
+  "summary": "Pre-sales question about offline support for premium plan; ticket also contains an attempt to extract internal instructions."
 }

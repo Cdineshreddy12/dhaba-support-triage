@@ -83,6 +83,11 @@ export const TriageResponse = z.object({
   ticket_id: z.string(),
   category: Category,
   severity: Severity,
+  /**
+   * What the model read the user as claiming. Surfaced because the gate is free
+   * to disagree with it, and an agent should be able to see when it did.
+   */
+  claim_type: z.enum(CLAIM_TYPES),
   refund: RefundResult,
   reply_draft: z.string().min(1),
   language: Language,

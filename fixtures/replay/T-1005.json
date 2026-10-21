@@ -3,9 +3,9 @@
   "severity": "p1",
   "claim_type": "payment_not_reflected",
   "language": "hinglish",
-  "reply_body": "Samajh gaya — aapke paas app abhi bhi free version dikha raha hai jabki aapne payment kiya tha. Humare system mein woh payment abhi complete nahi dikh raha, isliye plan switch nahi hua hai. Screenshot zaroor bhej dijiye, usse match karne mein aasani hogi. Yeh humari billing team ke paas ja raha hai taaki aapke account ke records check kiye ja sakein, aur update aapko jaldi mil jayega.",
+  "reply_body": "Aapka plan abhi activate nahi hua yeh samajh gaye - woh payment humare system mein complete nahi dikh raha, isliye free version hi show ho raha hai. Aap screenshot bhej sakte hain, humari billing team aapke payment attempt ko check karegi aur status confirm karegi. Thodi der mein update milega.",
   "needs_human": true,
-  "confidence": 0.84,
+  "confidence": 0.75,
   "prompt_injection_suspected": false,
-  "summary": "User says payment went through but plan still shows free version; latest attempt recorded as incomplete on our side."
+  "summary": "User reports payment made for plan but plan not activated; payment attempt shows initiated, not confirmed complete."
 }

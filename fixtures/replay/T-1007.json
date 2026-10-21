@@ -3,9 +3,9 @@
   "severity": "p3",
   "claim_type": "no_billing_claim",
   "language": "en",
-  "reply_body": "Marathi language support isn't available in the app right now, so I've noted your request for it. This will go to our product team along with other language requests so they can see the demand. Glad the app has been working well for you otherwise.",
+  "reply_body": "Thanks for the suggestion about adding Marathi language support. We'll pass this along to our product team to consider for a future update. Glad to hear you've been enjoying the app otherwise!",
   "needs_human": false,
-  "confidence": 0.93,
+  "confidence": 0.9,
   "prompt_injection_suspected": false,
-  "summary": "User requests Marathi language support in the app; no billing issue raised."
+  "summary": "Request to add Marathi language support"
 }

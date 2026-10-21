@@ -1,6 +1,8 @@
 import Fastify, { FastifyInstance } from 'fastify';
 import { randomUUID } from 'node:crypto';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import fastifyStatic from '@fastify/static';
 import { loadConfig, Config } from './config.js';
 import { Ticket } from './domain/ticket.js';
 import { TriageResponse } from './domain/triage.js';
@@ -10,6 +12,8 @@ import { ReplayProvider } from './llm/replay.js';
 import { ModelProvider } from './llm/provider.js';
 import { IdempotencyGuard, InMemoryDecisionStore } from './service/idempotency.js';
 import { TriageService } from './service/triage-service.js';
+
+const TICKETS_FILE = 'fixtures/dhaba_tickets.json';
 
 export interface BuildOptions {
   config?: Config;
@@ -43,6 +47,20 @@ export function buildServer(options: BuildOptions = {}): FastifyInstance {
   // Fastify's own logger is off: it prints request URLs and headers, and we
   // control exactly what reaches a log line. See src/log.ts.
   const app = Fastify({ logger: false, genReqId: () => randomUUID() });
+
+  // Demo console. Served only if web/dist exists, so the API never depends on
+  // the UI being built and `npm test` is unaffected either way.
+  const webDist = resolve('web/dist');
+  if (existsSync(webDist)) {
+    app.register(fastifyStatic, { root: webDist, prefix: '/' });
+  }
+
+  /** Demo data source for the console: the fixture inbox, unmodified. */
+  app.get('/tickets', async (_request, reply) => {
+    if (!existsSync(TICKETS_FILE)) return reply.code(404).send({ error: 'fixtures_missing' });
+    const raw = JSON.parse(readFileSync(TICKETS_FILE, 'utf8')) as { tickets: unknown[] };
+    return reply.send(raw.tickets.map((t) => Ticket.parse(t)));
+  });
 
   app.get('/healthz', async () => ({ status: 'ok' }));
 

@@ -3,9 +3,9 @@
   "severity": "p2",
   "claim_type": "dissatisfaction",
   "language": "en",
-  "reply_body": "Sorry the app hasn't worked for you. I'd like to know what exactly broke — crashes, orders not going through, or something else — so we can get it fixed rather than leave you stuck. Your account and the recent renewal are going to our billing team for a review, and you'll hear back on that. If you can send a screenshot or the error you saw, that will speed things up.",
-  "needs_human": true,
-  "confidence": 0.62,
+  "reply_body": "Sorry to hear the app isn't working for you. Could you tell us a bit more about what's going wrong so we can look into it? We've noted your request regarding the charge, and our team will review your account.",
+  "needs_human": false,
+  "confidence": 0.6,
   "prompt_injection_suspected": false,
-  "summary": "User says app does not work and demands money back, threatening a 1-star public review; no specific fault described."
+  "summary": "User dissatisfied with app, requesting refund and threatening negative review"
 }

@@ -3,9 +3,9 @@
   "severity": "p0",
   "claim_type": "duplicate_charge",
   "language": "en",
-  "reply_body": "You're saying two charges went out on the same day for the plan renewal. On our side only one renewal charge is showing, but I don't want to leave it at that — your account and card records are going to our billing team so they can check both against what your bank is showing. If you can send a screenshot of the two entries from your statement, that will speed up the check.",
+  "reply_body": "Thanks for flagging the charge on the same day - we understand that's concerning. On our side we're only seeing one completed payment recorded for that renewal, so we're having this checked against your account to confirm what went through. Our billing team will review the full transaction history and follow up with you shortly.",
   "needs_human": true,
-  "confidence": 0.85,
+  "confidence": 0.75,
   "prompt_injection_suspected": false,
-  "summary": "User reports being charged twice the same day; records show a single renewal capture and no close-together captures."
+  "summary": "User reports being charged twice on the same day for a renewal; records show a single successful capture."
 }
