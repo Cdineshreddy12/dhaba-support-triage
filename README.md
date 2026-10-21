@@ -100,6 +100,39 @@ wrote "I've passed this to the billing team" when nothing had been actioned —
 the second because the old rule forbade the phrasing without offering a
 replacement, so there was no other shape available for saying what happens next.
 
+### Principles, and what each one bought
+
+Named where they actually decided something, not as a checklist.
+
+**Make illegal states unrepresentable.** `ModelVerdict` has no amount field, so
+"the model names a refund" is not a bug to prevent — it is a sentence that
+cannot be typed. Categories, severities, claim types and reason codes are closed
+enums, so an invented value is a parse failure rather than a new value.
+
+**Parse, don't validate.** Zod at both edges, once. Inbound tickets are parsed in
+the route, model output at the provider. Nothing downstream re-checks a field or
+defends against a shape, because by then the shape is a type.
+
+**Mechanism over discipline.** Rules that depend on someone remembering them
+erode. `LogContext` has no `Record<string, unknown>`, so there is nowhere to put
+a body. `assertSpendable` throws rather than pay out an amount with no capture
+behind it. `needsHuman` starts with `refund.decision === 'refund'` instead of
+trusting the model's opinion of whether it should be trusted.
+
+**Fail toward a person.** Low confidence, a short body, an injection, a
+degraded model, a lapsed subscription — every one adds a human and none of them
+guesses.
+
+The SOLID ones, where they paid:
+
+| | where | what it bought |
+|---|---|---|
+| **Single responsibility** | `ledger` derives, `refund-policy` decides, `triage-service` orchestrates, `log` redacts | the money path has no model in it, which is what makes shedding the model under load safe |
+| **Open/closed** | rules and escalations are ordered data, not branches | a policy change is a row edit — which matters when requirements change mid-conversation |
+| **Liskov** | `AnthropicProvider` and `ReplayProvider` are interchangeable behind `ModelProvider` | the tests and CI run the same code path an evaluator does, with no key |
+| **Interface segregation** | `ModelProvider` has one method, `DecisionStore` two | nothing implements what it does not need; the in-memory store is ~20 lines |
+| **Dependency inversion** | `TriageService` takes provider, store, logger, shedder and metrics as abstractions | swapping in-memory for Postgres is one implementation, and tests inject a clock so output is deterministic |
+
 ### The other three properties
 
 | property | how |
