@@ -37,7 +37,7 @@ cd dhaba-support-triage
 npm install
 
 npm test              # 114 tests
-npm run triage:all    # all 12 tickets -> the table below
+npm run triage:all    # all 12 tickets, as a table
 npm run dev           # serve on :3000
 ```
 
@@ -168,8 +168,9 @@ fields, `type` and `status` — I modelled the data.
 
 ## Task 2
 
-This is `npm run triage:all` verbatim, with one column added: "what they wrote"
-is my one-line summary of each ticket. The rest is pinned to real output by
+This is `npm run triage:all -- --markdown` verbatim, with one column added:
+"what they wrote" is my one-line summary of each ticket. Without the flag the
+same run prints an aligned table for a terminal; `--json` gives full responses. The rest is pinned to real output by
 `test/readme-accuracy.test.ts`, so it cannot drift from the code.
 
 ✓ = goes to a human · ⚠ = contains text aimed at the assistant
