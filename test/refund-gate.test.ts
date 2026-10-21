@@ -38,6 +38,39 @@ describe('the gate reads the ledger, never the prose', () => {
   });
 });
 
+describe('a charge that has not happened yet is not a fresh charge', () => {
+  // Regression. hours_since_last_capture used Math.abs, so a capture
+  // timestamped AFTER the ticket produced a small POSITIVE number, which the
+  // remorse window read as "charged moments ago" and refunded. Reachable
+  // through clock skew between billing and the help form, a backfilled
+  // payment, or a charge landing while the ticket sits in a queue.
+  const futureCapture = {
+    ...byId('T-1006'),
+    received_at: '2026-09-04T12:30:00+05:30',
+    purchases: [
+      {
+        id: 'pay_FUTURE',
+        type: 'renewal' as const,
+        amount_inr: 1499,
+        status: 'successful' as const,
+        at: '2026-09-04T18:00:00+05:30', // 5.5h AFTER the ticket arrived
+      },
+    ],
+  };
+
+  it('reports negative elapsed time rather than an absolute gap', () => {
+    const facts = deriveLedger(futureCapture);
+    expect(facts.hours_since_last_capture).toBeLessThan(0);
+  });
+
+  it('does not refund it', () => {
+    const outcome = evaluateRefund(deriveLedger(futureCapture), 'unwanted_renewal');
+    expect(outcome.decision).not.toBe('refund');
+    expect(outcome.amount_inr).toBe(0);
+    expect(outcome.requires_human).toBe(true);
+  });
+});
+
 describe('money only moves for captured money', () => {
   it('no ticket, under any claim, can be refunded more than was captured', () => {
     for (const t of tickets) {

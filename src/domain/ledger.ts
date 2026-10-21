@@ -17,8 +17,22 @@ const TRIAL_CONVERSION_WINDOW_HOURS = 48;
 
 const MS_PER_HOUR = 3_600_000;
 
+/** Unsigned gap. Only for spacing between two events whose order is already known. */
 const hoursBetween = (a: string, b: string): number =>
   Math.abs(new Date(b).getTime() - new Date(a).getTime()) / MS_PER_HOUR;
+
+/**
+ * SIGNED elapsed time: negative when `from` is after `to`.
+ *
+ * Deliberately not Math.abs. `hours_since_last_capture` feeds the remorse
+ * window, and an absolute value turns "this charge has not happened yet" into
+ * "this charge happened moments ago" -- which reads as a fresh capture and
+ * refunds it. Clock skew between billing and the help form, a backfilled
+ * payment, or a ticket sitting in a queue while a charge lands are all enough
+ * to produce that ordering.
+ */
+const hoursElapsed = (from: string, to: string): number =>
+  (new Date(to).getTime() - new Date(from).getTime()) / MS_PER_HOUR;
 
 const byTimeAsc = (a: Purchase, b: Purchase): number =>
   new Date(a.at).getTime() - new Date(b.at).getTime();
@@ -43,6 +57,11 @@ export interface LedgerFacts {
   captured_count: number;
   captured_total_inr: number;
   last_capture: Purchase | null;
+  /**
+   * Hours from the last capture to the ticket arriving. SIGNED: negative means
+   * the capture is timestamped after the ticket, which should not happen and
+   * must never be read as a recent charge. Rules guard on `>= 0`.
+   */
   hours_since_last_capture: number | null;
 
   /** Attempts that took no money but which a user may genuinely believe were charges. */
@@ -79,7 +98,7 @@ export function deriveLedger(ticket: Ticket): LedgerFacts {
   const latestAttempt = all.length > 0 ? all[all.length - 1]! : null;
 
   const hours_since_last_capture = last_capture
-    ? hoursBetween(last_capture.at, ticket.received_at)
+    ? hoursElapsed(last_capture.at, ticket.received_at)
     : null;
 
   return {
