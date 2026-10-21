@@ -124,6 +124,62 @@ device string only catch what I already knew to look for.
 **It runs without an API key.** `TRIAGE_MODE=replay` is the default, and it is
 what CI, the tests and `npm run triage:all` use.
 
+### The vocabularies
+
+All four are closed enums in `src/domain/`. A value outside them is a validation
+failure, not a new value.
+
+**category** — eleven, chosen so each routes somewhere different:
+
+| | |
+|---|---|
+| `billing_refund_request` | asking for money back |
+| `billing_payment_not_activated` | paid, or believes they paid, and the plan is not active |
+| `billing_duplicate_charge_claim` | believes they were charged more than once |
+| `billing_unauthorized_charge` | a charge they say they never agreed to |
+| `billing_invoice_request` | wants an invoice, receipt or GST document |
+| `subscription_cancellation` | wants to stop the plan or stop being charged |
+| `technical_bug` | the app does not work |
+| `feature_request` | wants something the app does not do |
+| `account_recovery` | lost data, lost access, switched device |
+| `pre_sales_question` | not yet a customer, asking before buying |
+| `other` | none of the above |
+
+**severity** — defined by response obligation, not by how upset the text sounds,
+so a calm fraud report outranks a furious feature request:
+
+| | | |
+|---|---|---|
+| `p0` | money may have moved wrongly, or a legal, regulatory or police threat | minutes |
+| `p1` | the user cannot use something they have paid for | same day |
+| `p2` | a real problem with a workaround, or no money at stake | two days |
+| `p3` | no obligation: requests, opinions, general questions | best effort |
+
+A ledger escalation can raise severity but never lower it — see T-1007 below.
+
+**claim_type** — eight, and the only thing the model contributes to a money
+decision: `unauthorized_charge`, `duplicate_charge`, `payment_not_reflected`,
+`unwanted_renewal`, `trial_conversion_surprise`, `dissatisfaction`,
+`cancellation`, `no_billing_claim`.
+
+It describes what the user is *claiming*, not whether the claim is true. A user
+who sincerely believes they were charged twice is making a `duplicate_charge`
+claim even when billing shows one payment. The gate checks it against the ledger.
+
+**refund reason** — ten codes, each tied to the rule that produced it, so
+`rule_id` plus `reason` explains a decision without reopening the ticket. The
+full list is in `src/domain/refund-policy.ts`.
+
+### Confidence, and what happens when it is low
+
+`confidence` is the model's probability that a support agent would agree with
+the classification — not its confidence that the user is telling the truth.
+
+Below `TRIAGE_CONFIDENCE_FLOOR` (0.6) the answer is not acted on: `needs_human`
+becomes true and the ticket routes to a person, with the classification and the
+draft still attached so they start from something rather than nothing. The money
+decision is unaffected either way, because it never depended on confidence.
+
 ---
 
 ## Task 2: what it decided, and where I disagree
