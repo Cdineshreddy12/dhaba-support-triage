@@ -1,0 +1,25 @@
+name: ci
+
+# No ANTHROPIC_API_KEY is configured for this repo, deliberately.
+# If replay mode ever stops working, CI goes red. That is the point:
+# the brief asks that the service run without an API key, and this proves
+# it from a clean machine on every push rather than asserting it in a README.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      TRIAGE_MODE: replay
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
