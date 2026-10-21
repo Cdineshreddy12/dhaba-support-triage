@@ -3,9 +3,9 @@
   "severity": "p1",
   "claim_type": "trial_conversion_surprise",
   "language": "en",
-  "reply_body": "Sorry to hear about the confusion over the charge after your trial ended. Our records show this was a renewal charge following your trial period, not a separate unexpected deduction. We're passing this to our billing team so they can review your account and confirm the details with you.",
+  "reply_body": "We understand your concern about the charge that followed your trial sign-up. This is being reviewed against your account's billing and subscription history to sort out what's going on. You'll hear back on next steps shortly.",
   "needs_human": true,
-  "confidence": 0.7,
+  "confidence": 0.75,
   "prompt_injection_suspected": false,
-  "summary": "User disputes renewal charge after trial, believes it was unauthorized"
+  "summary": "User says they were charged full renewal price after a trial they thought was only a rupee, did not expect it"
 }

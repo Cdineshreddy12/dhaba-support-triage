@@ -153,3 +153,36 @@ the model is replaced", and it did not. Swapping the model is a cheap way to
 find which of your guarantees are structural and which were luck.
 
 **commit:** `df6790e`.
+## 2026-10-21 — the prompt taught the model to duplicate the service
+
+**what I asked for:** a reply for T-1005 that does not assert a charge the
+ledger does not show.
+
+**what came back, and what was wrong with it:** the fix worked -- no false
+claim -- but the assembled reply said the same thing twice:
+
+> ...woh payment humare system mein complete nahi dikh raha, isliye free
+> version hi show ho raha hai.   (model)
+>
+> Woh payment humare system mein incomplete dikh raha hai, matlab woh hum tak
+> nahi pahuncha.   (appended by the service from the fired rule)
+
+The cause was my own earlier fix. To stop the model claiming the money was
+deducted I gave it worked examples -- "woh payment humare system mein complete
+nahi dikh raha" -- which is almost verbatim the sentence
+CLAIMED_CHARGE_NEVER_CAPTURED already appends. I taught it to write the line the
+service was going to write anyway.
+
+**verdict:** corrected. The model is now told to leave the payment's state alone
+entirely and write the symptom and the next step; the appended sentence owns the
+facts. Same separation as the refund amount, applied to the payment's status.
+
+**the general point:** a prompt is not edited in isolation. It sits next to
+templates, and guidance written against one failure can collide with a component
+that was already handling the same thing. The check is to read the ASSEMBLED
+output, not the model's half.
+
+**second finding from the same re-record:** T-1004 came back at exactly 0.60
+against the 0.6 floor I had just raised from 0.55 to catch its previous 0.55.
+Threshold tuned to an observation, observation moved. Replaced with a word-count
+rule on the input. Written up in the README.

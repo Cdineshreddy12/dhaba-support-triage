@@ -3,9 +3,9 @@
   "severity": "p0",
   "claim_type": "unauthorized_charge",
   "language": "en",
-  "reply_body": "We understand your father is seeing charges on his card for an app he does not recall installing, and we're treating this as urgent. This is being escalated to our billing team right now to review the account activity in detail. We will get back to you with an update today. Please keep an eye on your email for our response.",
+  "reply_body": "We understand your father is seeing charges on his card for an app he says he never installed, and that this is urgent for your family. This is being sent to our billing team right now to check the account activity against these charges. We'll get back to you with an update today.",
   "needs_human": true,
-  "confidence": 0.75,
+  "confidence": 0.85,
   "prompt_injection_suspected": false,
-  "summary": "Elderly relative's card shows multiple charges for account they say they never set up; legal escalation threatened."
+  "summary": "Elderly relative reports unauthorized charges, family threatens cyber cell complaint"
 }

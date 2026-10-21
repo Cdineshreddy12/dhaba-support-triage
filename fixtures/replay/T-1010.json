@@ -3,9 +3,9 @@
   "severity": "p2",
   "claim_type": "no_billing_claim",
   "language": "en",
-  "reply_body": "Thanks for sharing your company details for the GST invoice on your annual payment. Our team will generate the invoice with the GSTIN you provided and send it to your registered email shortly. Let us know if you need any other details added to it.",
+  "reply_body": "Thanks for sharing your company details — we'll get a GST invoice for your annual payment generated with Acme Interiors and the GSTIN you provided, and send it to you for reimbursement purposes.",
   "needs_human": false,
-  "confidence": 0.92,
+  "confidence": 0.9,
   "prompt_injection_suspected": false,
-  "summary": "Customer requesting GST invoice for annual payment with company and GSTIN details provided"
+  "summary": "User requests GST invoice for annual payment for reimbursement"
 }

@@ -3,9 +3,9 @@
   "severity": "p1",
   "claim_type": "no_billing_claim",
   "language": "en",
-  "reply_body": "Sorry to hear the app is crashing right on open after the latest update on your Redmi Note 12. Our team will look into this crash on Android 13 devices and get a fix or workaround to you as soon as possible. In the meantime, try clearing the app's cache or reinstalling it, which sometimes resolves this. We'll follow up once we have more information.",
+  "reply_body": "Sorry to hear the app is closing right away after the latest update on your Redmi Note 12. Our team will look into this crash on Android 13 devices and get a fix or workaround to you. In the meantime, try clearing the app's cache or reinstalling it, which sometimes resolves crash-on-launch issues after an update. We'll follow up with next steps shortly.",
   "needs_human": false,
   "confidence": 0.85,
   "prompt_injection_suspected": false,
-  "summary": "Paying user reports app crashes immediately on opening after recent update (Android 13 device)."
+  "summary": "App crashes immediately on opening after recent update on Android device"
 }

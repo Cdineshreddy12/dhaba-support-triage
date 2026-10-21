@@ -3,9 +3,9 @@
   "severity": "p2",
   "claim_type": "dissatisfaction",
   "language": "en",
-  "reply_body": "Sorry to hear the app isn't working for you. Could you tell us a bit more about what's going wrong so we can look into it? We've noted your request regarding the charge, and our team will review your account.",
+  "reply_body": "Sorry to hear the app isn't working for you. Could you tell us a bit more about what's going wrong so we can look into it properly? We want to understand the issue before anything else happens with your account.",
   "needs_human": false,
   "confidence": 0.6,
   "prompt_injection_suspected": false,
-  "summary": "User dissatisfied with app, requesting refund and threatening negative review"
+  "summary": "User unhappy with app performance, demands refund and threatens negative review."
 }

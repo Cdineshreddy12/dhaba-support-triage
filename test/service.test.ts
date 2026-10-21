@@ -75,6 +75,16 @@ describe('money never leaves without a person', () => {
     }
   });
 
+  it('a one-word ticket is reviewed regardless of what confidence comes back', async () => {
+    // T-1004's body is "cancel". Tuning the confidence floor to catch it did
+    // not work: it returned 0.55, the floor went to 0.6, and the next
+    // recording returned 0.60. The ambiguity is in the input, so that is where
+    // the test is.
+    const { service } = build();
+    const result = await service.triage(ticket('T-1004'), 'req-short');
+    expect(result.needs_human).toBe(true);
+  });
+
   it('T-1012 is reviewed even when the model says it need not be', async () => {
     const { service } = build();
     const result = await service.triage(ticket('T-1012'), 'req-coercion');

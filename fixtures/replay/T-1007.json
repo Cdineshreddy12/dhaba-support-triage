@@ -3,7 +3,7 @@
   "severity": "p3",
   "claim_type": "no_billing_claim",
   "language": "en",
-  "reply_body": "Thanks for the suggestion about adding Marathi language support. We'll pass this along to our product team to consider for a future update. Glad to hear you've been enjoying the app otherwise!",
+  "reply_body": "Thanks for the suggestion about adding Marathi as a language option. We'll pass this along to our product team to consider for a future update. Glad to hear you've been enjoying the app overall!",
   "needs_human": false,
   "confidence": 0.9,
   "prompt_injection_suspected": false,

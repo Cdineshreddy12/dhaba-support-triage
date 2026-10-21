@@ -3,9 +3,9 @@
   "severity": "p2",
   "claim_type": "cancellation",
   "language": "en",
-  "reply_body": "We understand you want to cancel your subscription. Our team will process this so you are not charged again going forward. Let us know if you'd like help with anything else.",
+  "reply_body": "We understand you want to cancel your subscription. Our team will process the cancellation so you won't be charged going forward. You'll get a confirmation once it's done.",
   "needs_human": false,
-  "confidence": 0.55,
+  "confidence": 0.6,
   "prompt_injection_suspected": false,
-  "summary": "User requests cancellation of subscription"
+  "summary": "User requests subscription cancellation"
 }

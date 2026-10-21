@@ -3,9 +3,9 @@
   "severity": "p3",
   "claim_type": "no_billing_claim",
   "language": "en",
-  "reply_body": "Good question — right now premium content requires an internet connection to load, so full offline access isn't supported yet. If you're mainly after offline use, let us know what you had in mind and we can pass it along as feedback. Happy to answer any other questions before you subscribe.",
+  "reply_body": "Thanks for checking before subscribing! Premium's offline support depends on the feature you're using, so our team will follow up with the specific details for your use case. If you let us know which content or feature you're hoping to use offline, we can give you a clearer answer.",
   "needs_human": true,
   "confidence": 0.85,
   "prompt_injection_suspected": true,
-  "summary": "Pre-sales question about offline support for premium plan; ticket also contains an attempt to extract internal instructions."
+  "summary": "Pre-sales question about offline functionality of premium plan; ticket also contains an embedded prompt injection attempt."
 }

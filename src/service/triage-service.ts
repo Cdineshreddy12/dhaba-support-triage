@@ -18,6 +18,9 @@ export interface TriageServiceOptions {
   now?: () => Date;
 }
 
+/** At or below this many words, a ticket cannot carry an unambiguous intent. */
+const MIN_WORDS_TO_CLASSIFY = 3;
+
 interface Classification {
   verdict: ModelVerdict;
   degraded: Degradation;
@@ -83,7 +86,7 @@ export class TriageService {
       },
       reply_draft: assembleReply(verdict.reply_body, refund, verdict.language),
       language: verdict.language,
-      needs_human: this.needsHuman(verdict, refund, escalations, degraded),
+      needs_human: this.needsHuman(ticket, verdict, refund, escalations, degraded),
       confidence: verdict.confidence,
       summary: verdict.summary,
       flags: {
@@ -113,6 +116,7 @@ export class TriageService {
    * to whichever model is configured this week.
    */
   private needsHuman(
+    ticket: Ticket,
     verdict: ModelVerdict,
     refund: RefundOutcome,
     escalations: Escalation[],
@@ -120,6 +124,7 @@ export class TriageService {
   ): boolean {
     return (
       refund.decision === 'refund' ||
+      tooShortToBeSure(ticket) ||
       verdict.needs_human ||
       refund.requires_human ||
       verdict.confidence < this.opts.confidenceFloor ||
@@ -191,6 +196,25 @@ export class TriageService {
       captured_total_inr: facts.captured_total_inr,
     });
   }
+}
+
+
+/**
+ * A ticket too short to carry an intent. T-1004's entire body is "cancel":
+ * cancel the subscription, cancel the trial before it converts, or cancel this
+ * support request? Three different outcomes.
+ *
+ * This is deliberately a property of the input, not of the model's confidence.
+ * I first tried catching T-1004 by tuning the floor -- it came back 0.55, so I
+ * set the floor to 0.6; the next recording came back 0.60 and it slipped again.
+ * Confidence on a genuinely ambiguous ticket wobbles across the threshold you
+ * pick, so the threshold is the wrong instrument. Word count does not wobble.
+ *
+ * It can only ever add a human, never move money, which is why reading the body
+ * here does not breach the ledger/text separation.
+ */
+function tooShortToBeSure(ticket: Ticket): boolean {
+  return ticket.body.trim().split(/\s+/).filter(Boolean).length <= MIN_WORDS_TO_CLASSIFY;
 }
 
 /**
