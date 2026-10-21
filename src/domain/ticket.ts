@@ -22,13 +22,13 @@ export const Purchase = z.object({
   type: PurchaseType,
   amount_inr: z.number().nonnegative(),
   status: PurchaseStatus,
-  at: z.string().datetime({ offset: true }),
+  at: z.iso.datetime({ offset: true }),
 });
 export type Purchase = z.infer<typeof Purchase>;
 
 export const Ticket = z.object({
   id: z.string().min(1),
-  received_at: z.string().datetime({ offset: true }),
+  received_at: z.iso.datetime({ offset: true }),
   subject: z.string(),
   body: z.string(),
   purchases: z.array(Purchase),

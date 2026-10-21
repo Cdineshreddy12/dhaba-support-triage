@@ -65,7 +65,7 @@ export const RefundResult = z.object({
   reason: z.enum(REFUND_REASONS),
   rule_id: z.string(),
   requires_human: z.boolean(),
-  basis: z.record(z.union([z.string(), z.number(), z.boolean(), z.null()])),
+  basis: z.record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.null()])),
 });
 export type RefundResult = z.infer<typeof RefundResult>;
 
