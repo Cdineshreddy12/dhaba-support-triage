@@ -24,6 +24,8 @@ export interface Config {
   port: number;
   logLevel: string;
   confidenceFloor: number;
+  /** Concurrent model calls allowed before shedding. */
+  maxConcurrentModelCalls: number;
 }
 
 export function loadConfig(): Config {
@@ -50,5 +52,6 @@ export function loadConfig(): Config {
     // genuinely ambiguous ticket in the set, so it wants re-tuning on real
     // volume -- see the open questions in the README.
     confidenceFloor: Number(process.env.TRIAGE_CONFIDENCE_FLOOR ?? 0.6),
+    maxConcurrentModelCalls: Number(process.env.TRIAGE_MAX_CONCURRENT_MODEL_CALLS ?? 8),
   };
 }

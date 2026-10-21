@@ -7,6 +7,7 @@ import { ModelProvider } from '../llm/provider.js';
 import { assembleReply } from './reply.js';
 import { IdempotencyGuard } from './idempotency.js';
 import { Logger } from '../log.js';
+import { LoadShedder } from './load-shedder.js';
 
 export interface TriageServiceOptions {
   provider: ModelProvider;
@@ -14,6 +15,8 @@ export interface TriageServiceOptions {
   logger: Logger;
   /** Below this, the answer routes to a human instead of being acted on. */
   confidenceFloor: number;
+  /** Caps concurrent model calls. Omit to never shed. */
+  shedder?: LoadShedder;
   /** Injected so tests are deterministic. */
   now?: () => Date;
 }
@@ -141,7 +144,19 @@ export class TriageService {
    * will do it again, and a ticket has a latency budget.
    */
   private async classify(ticket: Ticket, facts: LedgerFacts, log: Logger): Promise<Classification> {
-    const first = await this.opts.provider.classify({ ticket, facts });
+    const shedder = this.opts.shedder;
+
+    // Shed before spending the call, not after queueing for one. The rules
+    // still decide the money, so the answer is correct -- just unclassified.
+    if (shedder?.shedding) {
+      log.warn('shed the model call', { degraded: 'load_shed' });
+      return { verdict: fallbackVerdict(), degraded: 'load_shed', attempts: 0 };
+    }
+
+    const call = (input: Parameters<ModelProvider['classify']>[0]) =>
+      shedder ? shedder.run(() => this.opts.provider.classify(input)) : this.opts.provider.classify(input);
+
+    const first = await call({ ticket, facts });
     if (first.ok) return { verdict: first.verdict, degraded: 'none', attempts: 1 };
 
     log.warn('model attempt rejected', { failure: first.failure, validation_issues: first.detail });
@@ -155,7 +170,7 @@ export class TriageService {
       };
     }
 
-    const second = await this.opts.provider.classify({ ticket, facts, correction: first.detail });
+    const second = await call({ ticket, facts, correction: first.detail });
     if (second.ok) {
       log.info('model recovered on retry', { model_attempts: 2 });
       return { verdict: second.verdict, degraded: 'none', attempts: 2 };

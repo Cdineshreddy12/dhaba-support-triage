@@ -18,7 +18,7 @@ git clone https://github.com/Cdineshreddy12/dhaba-support-triage.git
 cd dhaba-support-triage
 npm install
 
-npm test              # 94 tests
+npm test              # 100 tests
 npm run typecheck
 npm run triage:all    # all 12 tickets, prints the table below
 ```
@@ -451,15 +451,25 @@ calls but noticing they are the same.
 A ladder, not a switch. Each rung keeps the endpoint correct and gives up
 something less important than the rung below.
 
-**1. Shed the model, never the gate.** `TriageService` already separates
-classification from decision, and the fallback verdict is inert. Under pressure
-the model call is skipped: the ledger and the rule table still run, so every
-ticket gets a real refund decision with `meta.degraded: "load_shed"` and
-`needs_human: true`.
+**1. Shed the model, never the gate.** *Implemented* —
+`src/service/load-shedder.ts`, with tests in `test/load-shed.test.ts`.
+
+`TRIAGE_MAX_CONCURRENT_MODEL_CALLS` (default 8) caps model calls in flight. Past
+it, a request does not queue for a slot: it is decided immediately by the ledger
+and the rule table, and marked `meta.degraded: "load_shed"` with
+`needs_human: true`. Shedding is not queueing — waiting for a slot is what turns
+an overloaded endpoint into a timing-out one.
 
 This is the property that makes the rest possible. The money path has no model
 in it, so the first thing to drop under load is the only thing that is slow.
-Throughput becomes CPU-bound on pure functions: tens of thousands a second.
+Throughput becomes CPU-bound on pure functions.
+
+The tests assert the part that matters rather than the throughput: with the
+limit at 0, every one of the twelve still gets its real refund decision from the
+rules, none of them auto-sends, and none of them pays out. T-1009 still refuses
+its false duplicate claim without a model having been consulted at all.
+
+The three rungs below are described, not built.
 
 **2. Collapse duplicates before spending a model call.** Hash on
 `(category-shaped keywords, app version, platform)` and let the first ticket of

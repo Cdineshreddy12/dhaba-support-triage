@@ -12,6 +12,7 @@ import { ReplayProvider } from './llm/replay.js';
 import { ModelProvider } from './llm/provider.js';
 import { IdempotencyGuard, InMemoryDecisionStore } from './service/idempotency.js';
 import { TriageService } from './service/triage-service.js';
+import { LoadShedder } from './service/load-shedder.js';
 
 const TICKETS_FILE = 'fixtures/dhaba_tickets.json';
 
@@ -42,6 +43,7 @@ export function buildServer(options: BuildOptions = {}): FastifyInstance {
     guard: new IdempotencyGuard(new InMemoryDecisionStore()),
     logger,
     confidenceFloor: config.confidenceFloor,
+    shedder: new LoadShedder(config.maxConcurrentModelCalls),
   });
 
   // Fastify's own logger is off: it prints request URLs and headers, and we
