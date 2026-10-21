@@ -68,17 +68,24 @@ angry by design.
 
 **Composition out.** Writing back in that language and register.
 
-Everything between those two points is code. See it by running the same twelve
-tickets with every model call shed:
+Everything between those two points is code. To see which half is which, run
+the same twelve tickets twice — once using the model's recorded output, once
+skipping it:
 
 ```bash
-npm run triage:all              # 12 tickets, 10 to a human, 3 refunds, ₹1,997
+npm run triage:all                # 12 tickets, 10 to a human, 3 refunds, ₹1,997
 npm run triage:all -- --no-model  # 12 tickets, 12 to a human, 0 refunds, ₹0
 ```
 
+**Neither command calls the API.** The first replays recorded `claude-sonnet-5`
+responses from `fixtures/replay/`; the second skips them entirely. The script
+constructs the replay provider directly and never reads `TRIAGE_MODE`, so it
+stays free and instant even if you have a key configured. A live call happens
+only via `npm run dev` with `TRIAGE_MODE=live`, or `scripts/record-fixtures.ts`.
+
 On T-1005 the difference is:
 
-| | with the model | with it shed |
+| | replaying the model's output | model skipped entirely |
 |---|---|---|
 | category | `billing_payment_not_activated` | `other` |
 | claim_type | `payment_not_reflected` | `no_billing_claim` |
