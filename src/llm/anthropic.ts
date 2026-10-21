@@ -3,7 +3,7 @@ import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
 import { z } from 'zod';
 import { ModelVerdict } from '../domain/triage.js';
 import { SYSTEM_PROMPT, buildUserMessage, redactLedger } from './prompt.js';
-import { ClassifyInput, ModelProvider, ProviderResult } from './provider.js';
+import { ClassifyInput, ModelProvider, ProviderFailure, ProviderResult } from './provider.js';
 
 export interface AnthropicProviderOptions {
   apiKey: string;
@@ -74,7 +74,7 @@ function issuePaths(error: z.ZodError): string {
     .join(', ');
 }
 
-function classifyError(error: unknown): { failure: 'unavailable' | 'timeout'; detail: string } {
+function classifyError(error: unknown): { failure: ProviderFailure; detail: string } {
   if (error instanceof Anthropic.APIConnectionTimeoutError) {
     return { failure: 'timeout', detail: 'request timed out' };
   }
@@ -87,5 +87,10 @@ function classifyError(error: unknown): { failure: 'unavailable' | 'timeout'; de
   if (error instanceof Anthropic.APIError) {
     return { failure: 'unavailable', detail: `api error ${error.status ?? 'unknown'}` };
   }
-  return { failure: 'unavailable', detail: 'unexpected provider error' };
+  // Anything that is not an API error reached us after the transport
+  // succeeded, which in practice means the response could not be turned into
+  // the schema -- messages.parse throws on output it cannot read. That is the
+  // retryable class, not the outage class, so it must not be reported as
+  // 'unavailable' or the retry is skipped.
+  return { failure: 'invalid_output', detail: 'response could not be parsed' };
 }

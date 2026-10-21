@@ -36,7 +36,16 @@ export class ReplayProvider implements ModelProvider {
       return { ok: false, failure: 'unavailable', detail: `no recording for ${ticketId}` };
     }
 
-    const raw: unknown = JSON.parse(readFileSync(path, 'utf8'));
+    // Unparseable output is a failure to report, not an exception to throw.
+    // The brief names prose and truncated json alongside an invented category,
+    // and only the last of those reaches the schema at all.
+    let raw: unknown;
+    try {
+      raw = JSON.parse(readFileSync(path, 'utf8'));
+    } catch {
+      return { ok: false, failure: 'invalid_output', detail: 'response was not json' };
+    }
+
     if (isRecordedFailure(raw)) {
       return { ok: false, failure: raw.__failure, detail: raw.detail ?? 'recorded failure' };
     }
