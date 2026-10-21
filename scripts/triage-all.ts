@@ -134,6 +134,11 @@ function printTable(): void {
       `${bold(String(humans))} to a human ${amber('✓')}   ` +
       `${bold(String(refunds))} refunds   ${green('₹' + total.toLocaleString('en-IN'))}\n`,
   );
+  const modes = [...new Set(results.map((r) => r.meta.mode))].join(', ');
+  console.log(
+    dim(`  mode: ${modes} — categories, severities and drafts are recorded model output`),
+  );
+  console.log(dim('  (fixtures/replay, see __recorded); the money columns are computed live'));
   console.log(dim('  ✓ needs a human    ⚠ contains text aimed at the assistant'));
   console.log(dim('  --markdown for the README table    --json for full responses\n'));
 }

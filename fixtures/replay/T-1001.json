@@ -1,4 +1,9 @@
 {
+  "__recorded": {
+    "model": "claude-sonnet-5",
+    "effort": "medium",
+    "via": "scripts/record-fixtures.ts"
+  },
   "category": "billing_refund_request",
   "severity": "p1",
   "claim_type": "trial_conversion_surprise",

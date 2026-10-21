@@ -50,7 +50,13 @@ export class ReplayProvider implements ModelProvider {
       return { ok: false, failure: raw.__failure, detail: raw.detail ?? 'recorded failure' };
     }
 
-    const parsed = ModelVerdict.safeParse(raw);
+    // `__`-prefixed keys are provenance, not part of the model's output.
+    const verdict =
+      typeof raw === 'object' && raw !== null
+        ? Object.fromEntries(Object.entries(raw).filter(([k]) => !k.startsWith('__')))
+        : raw;
+
+    const parsed = ModelVerdict.safeParse(verdict);
     if (!parsed.success) {
       return {
         ok: false,

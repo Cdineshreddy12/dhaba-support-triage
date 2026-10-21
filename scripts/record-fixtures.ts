@@ -34,7 +34,13 @@ for (const ticket of tickets) {
     console.log(`${ticket.id}  FAILED  ${result.failure}: ${result.detail}  (${ms}ms)`);
     continue;
   }
-  writeFileSync(`fixtures/replay/${ticket.id}.json`, JSON.stringify(result.verdict, null, 2) + '\n');
+  // Provenance, so a reader can tell a recording from a hand-written file.
+  // Stripped by ReplayProvider before validation.
+  const recorded = {
+    __recorded: { model: cfg.model, effort: cfg.effort, via: 'scripts/record-fixtures.ts' },
+    ...result.verdict,
+  };
+  writeFileSync(`fixtures/replay/${ticket.id}.json`, JSON.stringify(recorded, null, 2) + '\n');
   const v = result.verdict;
   console.log(
     `${ticket.id}  ${v.category}  ${v.severity}  claim=${v.claim_type}  lang=${v.language}  ` +

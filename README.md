@@ -57,6 +57,19 @@ npx vitest run test/explain.test.ts          # the rule trace matches the gate
 Live model: `cp .env.example .env`, set `ANTHROPIC_API_KEY` and `TRIAGE_MODE=live`.
 CI runs on every push with no key configured.
 
+**Where the output comes from with no key.** Two halves, and only one of them
+needed a model. The `category`, `severity`, `claim_type`, `confidence` and reply
+drafts are *recorded* `claude-sonnet-5` responses in `fixtures/replay/`, each
+carrying a `__recorded` block naming the model that produced it. The refund
+decision, the rule that fired, the escalations and `needs_human` are computed
+from `purchases[]` on every run — those never involved a model and cannot be
+replayed, which is why flipping a payment's status in a ticket changes the money
+immediately.
+
+`meta.mode` says `replay` on every response so this is never ambiguous. Set
+`TRIAGE_MODE=live` and the same tickets go to the real model; the money columns
+do not change, because the gate does not consult it.
+
 ## Design
 
 **A ticket's text cannot become a rupee amount.** There is no parameter through

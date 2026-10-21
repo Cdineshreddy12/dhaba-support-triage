@@ -1,4 +1,9 @@
 {
+  "__recorded": {
+    "model": "claude-sonnet-5",
+    "effort": "medium",
+    "via": "scripts/record-fixtures.ts"
+  },
   "category": "pre_sales_question",
   "severity": "p3",
   "claim_type": "no_billing_claim",

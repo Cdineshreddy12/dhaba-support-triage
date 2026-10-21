@@ -1,4 +1,9 @@
 {
+  "__recorded": {
+    "model": "claude-sonnet-5",
+    "effort": "medium",
+    "via": "scripts/record-fixtures.ts"
+  },
   "category": "subscription_cancellation",
   "severity": "p2",
   "claim_type": "cancellation",

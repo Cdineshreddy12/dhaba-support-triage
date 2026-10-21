@@ -1,4 +1,9 @@
 {
+  "__recorded": {
+    "model": "claude-sonnet-5",
+    "effort": "medium",
+    "via": "scripts/record-fixtures.ts"
+  },
   "category": "account_recovery",
   "severity": "p2",
   "claim_type": "no_billing_claim",
