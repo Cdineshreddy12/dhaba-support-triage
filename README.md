@@ -494,15 +494,19 @@ I would not want this decided ad hoc at 3am.
 - **No user sees a degraded reply.** `needs_human: true` on every load-shed
   decision means nothing auto-sends during an incident. The queue gets longer.
   The outbox does not fill with generic text.
-- **They get an honest acknowledgement immediately.** We have your message, we
-  know about the problem, we will come back to you. That is also true, which a
-  drafted reply misreading their ticket is not.
+- **They get an honest acknowledgement immediately.** "We have your message and
+  a member of our team is picking this up directly." That is the text
+  `fallbackVerdict()` already returns, not a plan — it is what every shed or
+  degraded ticket carries today. It is also true, which a drafted reply
+  misreading their ticket is not.
 - **Refund decisions still land.** Someone charged during the outage gets the
   right answer from the ledger, because that never needed the model.
-- **The agent can see the difference.** `meta.degraded` is in the response, so
-  the queue UI can mark rules-only items as unread rather than pre-triaged. The
+- **The agent can see the difference.** `meta.degraded` is in the response, and
+  the console renders it as a red banner rather than letting a rules-only
+  decision look like a normal one. Set
+  `TRIAGE_MAX_CONCURRENT_MODEL_CALLS=0` and reload to see it on all twelve. The
   failure I most want to avoid is an agent trusting a degraded classification
-  because it looks like a normal one.
+  because it is shaped like a confident one.
 
 ### What I would store, and where
 
@@ -538,15 +542,41 @@ implementation.
 need to answer "why did this user get money and that one not" six months later,
 and the answer is "different policy", not "the code changed".
 
-**Reply drafts**, separate table, separate retention. They quote the user, so
-they are the PII-shaped part of this. Keeping them out of the decision row means
-decisions can be retained for years and queried freely while drafts expire on a
-short clock.
+**`reply_drafts`**, Postgres, separate table and separate retention.
 
-**`idempotency_inflight`**, Redis, `SETNX ticket_id` with a short TTL. Closes
-the concurrent race across processes, which the in-memory map cannot. The
-Postgres constraint is the correctness backstop; Redis just prevents the wasted
-model call.
+```
+ticket_id    text        references triage_decisions(ticket_id)
+revision     int         -- 1 is the service's draft, 2+ are agent edits
+body         text
+language     text
+authored_by  text        -- 'service' or an agent id
+created_at   timestamptz
+sent_at      timestamptz -- null until it actually goes
+primary key (ticket_id, revision)
+```
+
+Separate because drafts quote the user, so they are the PII-shaped part of this.
+Keeping them out of the decision row lets decisions be retained for years and
+queried freely while drafts expire on a short clock.
+
+Revisions rather than an updated row because the interesting question later is
+not what we sent, it is **what the agent changed before sending**. The diff
+between revision 1 and the revision with `sent_at` set is the cheapest training
+signal available — every edit is a human telling you where the draft was wrong,
+for free, in the course of work they were doing anyway.
+
+**`idempotency_inflight`**, Redis.
+
+```
+KEY    triage:inflight:<ticket_id>
+VALUE  <request_id>
+SET key value NX EX 30
+```
+
+Closes the concurrent race across processes, which the in-memory map cannot. The
+Postgres primary key is the correctness backstop; Redis only prevents the wasted
+model call. If Redis is down, the race reopens and the database still refuses
+the second decision — losing the cache costs money in tokens, not in refunds.
 
 **Raw tickets** are not mine. They live in the support system. This service
 stores decisions, not correspondence.
