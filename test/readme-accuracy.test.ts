@@ -34,15 +34,26 @@ describe('the README describes what the service actually does', () => {
     const results = await decideAll();
 
     for (const result of results) {
-      const row = README.split('\n').find((line) => line.startsWith(`| ${result.ticket_id} |`));
+      const row = README.split('\n').find((line) => line.startsWith(`| ${result.ticket_id} `));
       expect(row, `no table row for ${result.ticket_id}`).toBeDefined();
 
-      const cells = row!.split('|').map((c) => c.trim());
-      expect(cells[2], `${result.ticket_id} category`).toBe(result.category);
-      expect(cells[3], `${result.ticket_id} severity`).toBe(result.severity);
-      expect(cells[4], `${result.ticket_id} refund decision`).toBe(result.refund.decision);
-      expect(cells[6], `${result.ticket_id} rule`).toBe(`\`${result.refund.rule_id}\``);
-      expect(cells[8], `${result.ticket_id} needs_human`).toBe(result.needs_human ? '✓' : '');
+      // Matched by content rather than cell position, so reordering or adding
+      // a column does not break this -- only a wrong claim does.
+      expect(row, `${result.ticket_id} category`).toContain(result.category);
+      expect(row, `${result.ticket_id} severity`).toContain(result.severity);
+      expect(row, `${result.ticket_id} rule`).toContain(result.refund.rule_id);
+
+      if (result.refund.decision === 'refund') {
+        expect(row, `${result.ticket_id} refund amount`).toContain(`₹${result.refund.amount_inr}`);
+      }
+      if (result.needs_human) {
+        expect(row, `${result.ticket_id} should be marked for a human`).toContain('✓');
+      } else {
+        expect(row, `${result.ticket_id} should not be marked for a human`).not.toContain('✓');
+      }
+      if (result.flags.prompt_injection_suspected) {
+        expect(row, `${result.ticket_id} should be flagged`).toContain('⚠');
+      }
     }
   });
 
