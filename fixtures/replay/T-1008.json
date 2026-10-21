@@ -1,0 +1,11 @@
+{
+  "category": "billing_unauthorized_charge",
+  "severity": "p0",
+  "claim_type": "unauthorized_charge",
+  "language": "en",
+  "reply_body": "I understand your father never signed up for this and that three charges have appeared on his card. I've marked this as an urgent unauthorised-charge case so a senior member of our billing team reviews the account and the card on file today, and we'll also make sure no further charges can be attempted while the review is open. Please don't share any card numbers or OTPs with us — we don't need them. Someone will write back to you on this same thread with what the review finds.",
+  "needs_human": true,
+  "confidence": 0.92,
+  "prompt_injection_suspected": false,
+  "summary": "Family reports three charges on elderly father's card for an account he says he never created; cyber cell escalation threatened."
+}

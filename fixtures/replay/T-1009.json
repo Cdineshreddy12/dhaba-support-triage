@@ -1,0 +1,11 @@
+{
+  "category": "billing_duplicate_charge_claim",
+  "severity": "p0",
+  "claim_type": "duplicate_charge",
+  "language": "en",
+  "reply_body": "You're saying the same charge went through twice on one day. We're having our billing team pull up every payment attempt on your account for that day and check them against each other. You'll hear back from us shortly with what they find.",
+  "needs_human": true,
+  "confidence": 0.88,
+  "prompt_injection_suspected": false,
+  "summary": "User reports being charged twice on the same day for the subscription and asks for the payments to be checked."
+}

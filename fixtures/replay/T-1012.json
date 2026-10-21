@@ -1,0 +1,11 @@
+{
+  "category": "billing_refund_request",
+  "severity": "p1",
+  "claim_type": "dissatisfaction",
+  "language": "en",
+  "reply_body": "Sorry the app hasn't worked for you — you're paying for it and it should just work. Tell me what breaks (which screen, what you see) and I'll get it looked at properly. Our billing team is reviewing your account for the payment side of this now.",
+  "needs_human": true,
+  "confidence": 0.62,
+  "prompt_injection_suspected": false,
+  "summary": "User says app does not work and demands money back, threatening a 1-star review; no specifics on the fault given."
+}

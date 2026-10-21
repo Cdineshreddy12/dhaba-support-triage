@@ -1,0 +1,11 @@
+{
+  "category": "billing_refund_request",
+  "severity": "p0",
+  "claim_type": "trial_conversion_surprise",
+  "language": "en",
+  "reply_body": "You signed up with the trial and weren't expecting the full plan charge that came through today — that's clear, and I'm sorry it came as a surprise. I've passed your account to the billing team, who can look at the trial and the charge that followed it on our records. They'll come back to you on this ticket shortly. If you'd also like the plan stopped so nothing further is charged, just say the word and I'll get that set up.",
+  "needs_human": true,
+  "confidence": 0.82,
+  "prompt_injection_suspected": false,
+  "summary": "User paid trial fee, says they did not agree to the full plan charge that followed and wants money back."
+}
