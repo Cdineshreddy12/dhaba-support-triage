@@ -31,16 +31,24 @@ for (const ticket of tickets) {
 if (process.argv.includes('--json')) {
   console.log(JSON.stringify(results, null, 2));
 } else {
-  console.log('| ticket | category | sev | refund | amount | rule | conf | human | inj |');
-  console.log('|---|---|---|---|---:|---|---:|:-:|:-:|');
+  // Same columns as the README's table, minus the "what they wrote" summary,
+  // which is editorial and lives only there.
+  console.log('| ticket | decided | money | rule that fired | conf |');
+  console.log('|---|---|---|---|---|');
   for (const r of results) {
-    const amount = r.refund.amount_inr > 0 ? `₹${r.refund.amount_inr}` : '—';
+    const marks = `${r.needs_human ? ' ✓' : ''}${r.flags.prompt_injection_suspected ? ' ⚠' : ''}`;
+    const money =
+      r.refund.decision === 'refund'
+        ? `**₹${r.refund.amount_inr} back**`
+        : r.refund.decision === 'hold_for_human'
+          ? 'held for a human'
+          : '—';
     console.log(
-      `| ${r.ticket_id} | ${r.category} | ${r.severity} | ${r.refund.decision} | ${amount} | ` +
-        `\`${r.refund.rule_id}\` | ${r.confidence.toFixed(2)} | ${r.needs_human ? '✓' : ''} | ` +
-        `${r.flags.prompt_injection_suspected ? '⚠' : ''} |`,
+      `| ${r.ticket_id}${marks} | \`${r.category}\` ${r.severity} | ${money} | ` +
+        `\`${r.refund.rule_id}\` | ${r.confidence.toFixed(2)} |`,
     );
   }
+
   const humans = results.filter((r) => r.needs_human).length;
   const payouts = results.filter((r) => r.refund.decision === 'refund');
   console.log(

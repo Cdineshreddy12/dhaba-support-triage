@@ -55,6 +55,10 @@ npx vitest run test/load-shed.test.ts        # degrades under load
 npx vitest run test/readme-accuracy.test.ts  # this file matches the code
 ```
 
+`npm run console` chains install, build and serve, so it prints npm output for
+~25 seconds before anything is listening. `npm run dev` alone serves the API
+without the console; `/` then returns the endpoint list rather than the UI.
+
 Live model: `cp .env.example .env`, set `ANTHROPIC_API_KEY` and `TRIAGE_MODE=live`.
 CI runs on every push with no key configured.
 
@@ -116,8 +120,8 @@ fields, `type` and `status` — I modelled the data.
 
 ## Task 2
 
-Decisions from `npm run triage:all`; the "what they wrote" column is my
-one-line summary of each ticket. Everything else is pinned to real output by
+This is `npm run triage:all` verbatim, with one column added: "what they wrote"
+is my one-line summary of each ticket. The rest is pinned to real output by
 `test/readme-accuracy.test.ts`, so it cannot drift from the code.
 
 ✓ = goes to a human · ⚠ = contains text aimed at the assistant
