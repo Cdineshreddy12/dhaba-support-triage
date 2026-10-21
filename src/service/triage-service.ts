@@ -3,7 +3,6 @@ import { deriveLedger, LedgerFacts } from '../domain/ledger.js';
 import { evaluateRefund, RefundOutcome } from '../domain/refund-policy.js';
 import { Degradation, ModelVerdict, TriageResponse } from '../domain/triage.js';
 import { ModelProvider } from '../llm/provider.js';
-import { redactLedger } from '../llm/prompt.js';
 import { assembleReply } from './reply.js';
 import { IdempotencyGuard } from './idempotency.js';
 import { Logger } from '../log.js';
@@ -14,8 +13,14 @@ export interface TriageServiceOptions {
   logger: Logger;
   /** Below this, the answer routes to a human instead of being acted on. */
   confidenceFloor: number;
-  /** Stamped into responses. Injected so tests are deterministic. */
+  /** Injected so tests are deterministic. */
   now?: () => Date;
+}
+
+interface Classification {
+  verdict: ModelVerdict;
+  degraded: Degradation;
+  attempts: number;
 }
 
 export class TriageService {
@@ -28,36 +33,38 @@ export class TriageService {
       this.decide(ticket, log),
     );
 
-    if (replayed) {
-      log.info('returned stored decision', {
-        idempotent_replay: true,
-        refund_decision: decision.refund.decision,
-        refund_amount_inr: decision.refund.amount_inr,
-        rule_id: decision.refund.rule_id,
-      });
-      return { ...decision, meta: { ...decision.meta, idempotent_replay: true } };
-    }
-    return decision;
+    if (!replayed) return decision;
+
+    log.info('returned stored decision', {
+      idempotent_replay: true,
+      refund_decision: decision.refund.decision,
+      refund_amount_inr: decision.refund.amount_inr,
+      rule_id: decision.refund.rule_id,
+    });
+    return { ...decision, meta: { ...decision.meta, idempotent_replay: true } };
   }
 
   private async decide(ticket: Ticket, log: Logger): Promise<TriageResponse> {
     const facts = deriveLedger(ticket);
-    const { verdict, degraded, attempts } = await this.classify(ticket, facts, log);
+    const classification = await this.classify(ticket, facts, log);
 
     // The gate runs identically whether the model worked or not. When it did
-    // not, claim_type is 'no_billing_claim', so a degraded request can never
-    // produce a payout -- it produces a human.
-    const refund: RefundOutcome = evaluateRefund(facts, verdict.claim_type);
+    // not, claim_type is 'no_billing_claim', so degrading produces a human
+    // rather than a payout.
+    const refund = evaluateRefund(facts, classification.verdict.claim_type);
 
-    const lowConfidence = verdict.confidence < this.opts.confidenceFloor;
-    const needsHuman =
-      verdict.needs_human ||
-      refund.requires_human ||
-      lowConfidence ||
-      verdict.prompt_injection_suspected ||
-      degraded !== 'none';
+    const response = this.buildResponse(ticket, facts, classification, refund);
+    this.logDecision(log, response, classification, refund, facts);
+    return response;
+  }
 
-    const response: TriageResponse = {
+  private buildResponse(
+    ticket: Ticket,
+    facts: LedgerFacts,
+    { verdict, degraded, attempts }: Classification,
+    refund: RefundOutcome,
+  ): TriageResponse {
+    return {
       ticket_id: ticket.id,
       category: verdict.category,
       severity: verdict.severity,
@@ -72,7 +79,7 @@ export class TriageService {
       },
       reply_draft: assembleReply(verdict.reply_body, refund, verdict.language),
       language: verdict.language,
-      needs_human: needsHuman,
+      needs_human: this.needsHuman(verdict, refund, degraded),
       confidence: verdict.confidence,
       summary: verdict.summary,
       flags: {
@@ -81,14 +88,71 @@ export class TriageService {
         claimed_charge_never_captured: facts.claimed_charge_is_uncaptured,
       },
       meta: {
-        mode: degraded === 'none' ? (this.opts.provider.mode as 'live' | 'replay') : 'rules_only',
+        mode: degraded === 'none' ? this.opts.provider.mode : 'rules_only',
         degraded,
         model_attempts: attempts,
         idempotent_replay: false,
         decided_at: (this.opts.now?.() ?? new Date()).toISOString(),
       },
     };
+  }
 
+  /** Any one of these is enough. Unsure always means a person, never a guess. */
+  private needsHuman(
+    verdict: ModelVerdict,
+    refund: RefundOutcome,
+    degraded: Degradation,
+  ): boolean {
+    return (
+      verdict.needs_human ||
+      refund.requires_human ||
+      verdict.confidence < this.opts.confidenceFloor ||
+      verdict.prompt_injection_suspected ||
+      degraded !== 'none'
+    );
+  }
+
+  /**
+   * Parse, retry once with the error fed back, then degrade.
+   *
+   * One retry rather than a loop: a model that returned unusable output twice
+   * will do it again, and a ticket has a latency budget.
+   */
+  private async classify(ticket: Ticket, facts: LedgerFacts, log: Logger): Promise<Classification> {
+    const first = await this.opts.provider.classify({ ticket, facts });
+    if (first.ok) return { verdict: first.verdict, degraded: 'none', attempts: 1 };
+
+    log.warn('model attempt rejected', { failure: first.failure, validation_issues: first.detail });
+
+    // An outage or timeout will not be fixed by asking again in the same request.
+    if (first.failure !== 'invalid_output') {
+      return {
+        verdict: fallbackVerdict(),
+        degraded: first.failure === 'timeout' ? 'model_timeout' : 'model_unavailable',
+        attempts: 1,
+      };
+    }
+
+    const second = await this.opts.provider.classify({ ticket, facts, correction: first.detail });
+    if (second.ok) {
+      log.info('model recovered on retry', { model_attempts: 2 });
+      return { verdict: second.verdict, degraded: 'none', attempts: 2 };
+    }
+
+    log.error('model unusable after retry, falling back to rules', {
+      failure: second.failure,
+      validation_issues: second.detail,
+    });
+    return { verdict: fallbackVerdict(), degraded: 'model_output_invalid', attempts: 2 };
+  }
+
+  private logDecision(
+    log: Logger,
+    response: TriageResponse,
+    { verdict, degraded, attempts }: Classification,
+    refund: RefundOutcome,
+    facts: LedgerFacts,
+  ): void {
     log.info('triage decided', {
       mode: response.meta.mode,
       degraded,
@@ -107,60 +171,12 @@ export class TriageService {
       captured_count: facts.captured_count,
       captured_total_inr: facts.captured_total_inr,
     });
-
-    return response;
-  }
-
-  /**
-   * Parse, retry once with the error fed back, then degrade.
-   *
-   * One retry rather than a loop: a model that returned unusable output twice
-   * will return it a third time, and a ticket has a latency budget. The second
-   * attempt exists because schema violations are often a near-miss the model
-   * can fix when shown the issue path.
-   */
-  private async classify(
-    ticket: Ticket,
-    facts: LedgerFacts,
-    log: Logger,
-  ): Promise<{ verdict: ModelVerdict; degraded: Degradation; attempts: number }> {
-    const ledger = redactLedger(facts);
-
-    const first = await this.opts.provider.classify({ ticket, ledger });
-    if (first.ok) return { verdict: first.verdict, degraded: 'none', attempts: 1 };
-
-    log.warn('model attempt rejected', { failure: first.failure, validation_issues: first.detail });
-
-    // Only a schema failure is worth retrying. An outage or a timeout will not
-    // be fixed by asking again inside the same request.
-    if (first.failure !== 'invalid_output') {
-      return {
-        verdict: fallbackVerdict(),
-        degraded: first.failure === 'timeout' ? 'model_timeout' : 'model_unavailable',
-        attempts: 1,
-      };
-    }
-
-    const second = await this.opts.provider.classify({ ticket, ledger, correction: first.detail });
-    if (second.ok) {
-      log.info('model recovered on retry', { model_attempts: 2 });
-      return { verdict: second.verdict, degraded: 'none', attempts: 2 };
-    }
-
-    log.error('model unusable after retry, falling back to rules', {
-      failure: second.failure,
-      validation_issues: second.detail,
-    });
-    return { verdict: fallbackVerdict(), degraded: 'model_output_invalid', attempts: 2 };
   }
 }
 
 /**
- * What we return when there is no usable model output.
- *
- * Deliberately inert: claim_type 'no_billing_claim' means the gate has nothing
- * to act on, so no degraded request can move money. Confidence is 0 and a human
- * is required -- the caller is told plainly that nothing here was classified.
+ * Returned when there is no usable model output. Inert on purpose:
+ * claim_type 'no_billing_claim' gives the gate nothing to act on.
  */
 export function fallbackVerdict(): ModelVerdict {
   return {

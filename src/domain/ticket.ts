@@ -1,14 +1,11 @@
 import { z } from 'zod';
 
 /**
- * The inbound contract: a ticket exactly as it appears in dhaba_tickets.json.
+ * A ticket exactly as it appears in dhaba_tickets.json.
  *
- * A note on the two enums below. The brief says purchases "are in one of four
- * states: initiated, failed, successful, renewal". The data disagrees: it
- * carries two independent fields, `type` in {trial, renewal} and `status` in
- * {initiated, failed, successful}. "renewal" is a type, not a state. I have
- * modelled what the data does, because the service has to parse the data.
- * Flagged in docs/decisions.md and raised with the team.
+ * The brief calls these "four states: initiated, failed, successful, renewal",
+ * but the data has two fields: type {trial, renewal} and status {initiated,
+ * failed, successful}. Modelled the data. See docs/decisions.md D1.
  */
 
 export const PurchaseType = z.enum(['trial', 'renewal']);
@@ -36,5 +33,5 @@ export const Ticket = z.object({
 });
 export type Ticket = z.infer<typeof Ticket>;
 
-/** Plan prices, from the brief. Used to sanity-check amounts, never to invent them. */
+/** From the brief. For sanity checks only -- never to produce a refund amount. */
 export const PLAN_PRICES_INR = { trial: 1, monthly: 249, annual: 1499 } as const;

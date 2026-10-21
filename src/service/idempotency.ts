@@ -1,24 +1,9 @@
 import { TriageResponse } from '../domain/triage.js';
 
 /**
- * "The same ticket id arriving again must not refund twice."
- *
- * Two distinct races have to be handled, and only one of them is obvious:
- *
- *   1. Sequential repeat -- the ticket was decided minutes ago. Return the
- *      stored decision.
- *   2. Concurrent repeat -- two requests for the same id are in flight at once,
- *      so neither has stored anything yet. A store-after-the-fact cache lets
- *      both through and both decide a refund. This is the one that actually
- *      pays twice, and it is the realistic shape during a retry storm.
- *
- * The in-flight promise map closes (2): the second caller awaits the first
- * caller's work instead of starting its own.
- *
- * In-memory because this is one process. The interface is what matters -- the
- * production shape is a row keyed on ticket_id with a unique constraint, so the
- * database rejects the second decision rather than the process remembering not
- * to make it. See the backend track notes in the README.
+ * Production shape is a row keyed on ticket_id with a unique constraint, so the
+ * database rejects a second decision rather than the process remembering not to
+ * make one. In-memory here because this is a single process.
  */
 export interface DecisionStore {
   get(ticketId: string): Promise<TriageResponse | null>;
@@ -43,9 +28,13 @@ export class IdempotencyGuard {
   constructor(private readonly store: DecisionStore) {}
 
   /**
-   * Runs `decide` at most once per ticket id. Returns the decision plus whether
-   * it came from a previous run, so the caller can report it honestly rather
-   * than silently pretending it just decided.
+   * Runs `decide` at most once per ticket id.
+   *
+   * Two races, and only the first is obvious. A sequential repeat is served
+   * from the store. A CONCURRENT repeat -- two requests in flight before either
+   * has stored anything -- is the one that actually pays twice, and it is what
+   * a retry storm looks like. The in-flight map makes the second caller await
+   * the first instead of starting its own decision.
    */
   async once(
     ticketId: string,

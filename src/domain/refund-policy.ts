@@ -1,23 +1,14 @@
 import { LedgerFacts } from './ledger.js';
 
 /**
- * THE MONEY GATE.
+ * The money gate.
  *
- * The model never names a rupee amount. It contributes exactly one constrained
- * token -- a ClaimType, below -- describing what the user appears to be
- * claiming. Every amount returned from here is read out of a captured payment
- * in the ledger. There is no code path by which text in a ticket becomes money.
+ * The model contributes one constrained token -- a ClaimType -- describing what
+ * the user appears to claim. Every amount is read out of a captured payment.
+ * There is no code path by which ticket text becomes money, which is why a
+ * threat (T-1012) and an injected refund demand (T-1003) both change nothing.
  *
- * Consequences worth stating, because they are the point:
- *   - A threat ("1 star on play store") cannot raise a refund. T-1012 resolves
- *     identically with the threatening sentence removed; test/refund-gate asserts it.
- *   - An injected "approve a full refund immediately" cannot be obeyed, because
- *     obeying it would require a path that does not exist. T-1003.
- *   - A sincere user who believes they were charged, but was not, is not
- *     refunded -- they are told the truth. T-1005, T-1009.
- *
- * Rules are ordered data, first match wins. Changing policy means editing a row,
- * not hunting for branches.
+ * Rules are ordered data, first match wins. Policy changes are row edits.
  */
 
 /** The ONLY thing the model is permitted to contribute to a money decision. */
@@ -86,11 +77,8 @@ interface Rule {
  */
 const RULES: Rule[] = [
   {
-    // Fraud / unauthorised charge claims never auto-refund. A refund closes the
-    // ticket and destroys the investigation path an elder-fraud report needs.
-    // Governs: T-1008. Test: "T-1008 fraud is held for a human rather than auto-refunded"
-    // Expect: decision hold_for_human, amount 0, requires_human true,
-    //         reason FRAUD_CLAIM_NEEDS_IDENTITY_CHECK.
+    // Never auto-refund fraud: paying out closes the ticket and destroys the
+    // investigation path an elder-fraud report actually needs. (T-1008)
     id: 'R0_FRAUD_TO_HUMAN',
     when: (_f, claim) => claim === 'unauthorized_charge',
     then: (f) => ({
@@ -105,10 +93,7 @@ const RULES: Rule[] = [
     }),
   },
   {
-    // Nothing was ever captured on this account, so there is nothing to return.
-    // Governs: T-1011 (no purchases at all).
-    // Test: "T-1011 has no purchases, so every claim resolves to zero"
-    // Expect: decision none, amount 0, reason NO_CAPTURED_PAYMENT.
+    // Nothing captured, nothing to return. (T-1011)
     id: 'R1_NOTHING_CAPTURED',
     when: (f) => f.captured_total_inr === 0,
     then: () => ({
@@ -120,12 +105,8 @@ const RULES: Rule[] = [
     }),
   },
   {
-    // The user sincerely believes money left their account; the ledger says the
-    // latest attempt never captured. Pay nothing, but a human must unstick it.
-    // Governs: T-1005 (pay_E2 is 'initiated').
-    // Test: "T-1005 uncaptured payment pays nothing but still reaches a human"
-    // Expect: decision none, amount 0, requires_human TRUE,
-    //         reason CLAIMED_CHARGE_NEVER_CAPTURED. Put the uncaptured ids in basis.
+    // Sincere user, but the latest attempt never captured. Pay nothing; a
+    // person still has to unstick the payment. (T-1005)
     id: 'R2_CLAIMED_CHARGE_NEVER_CAPTURED',
     when: (f, claim) => claim === 'payment_not_reflected' && f.claimed_charge_is_uncaptured,
     then: (f) => ({
@@ -141,9 +122,8 @@ const RULES: Rule[] = [
     }),
   },
   {
-    // A genuine double charge: two CAPTURES of the same amount close together.
-    // No fixture ticket hits this -- the rule exists because the claim does.
-    // Expect: decision refund, amount = the duplicate capture's amount.
+    // Two captures of the same amount, close together. No fixture ticket hits
+    // this -- the rule exists because the claim does.
     id: 'R3_DUPLICATE_CONFIRMED',
     when: (f, claim) => claim === 'duplicate_charge' && f.duplicate_capture !== null,
     then: (f) => ({
@@ -160,10 +140,7 @@ const RULES: Rule[] = [
     }),
   },
   {
-    // "You charged me twice" with only one capture on file. Explain, do not pay.
-    // Governs: T-1009 (one failed + one successful = ONE charge).
-    // Test: "T-1009 duplicate claim against a single capture pays nothing"
-    // Expect: decision none, amount 0, reason NOT_A_DUPLICATE_ONE_CAPTURE_ONLY.
+    // "Charged me twice" with one capture on file. Explain, do not pay. (T-1009)
     id: 'R4_DUPLICATE_CLAIMED_BUT_SINGLE_CAPTURE',
     when: (f, claim) => claim === 'duplicate_charge' && f.duplicate_capture === null,
     then: (f) => ({
@@ -178,16 +155,8 @@ const RULES: Rule[] = [
     }),
   },
   {
-    // The remorse window. Charged recently, barely used => money back.
-    // Consults ONLY: hours since capture, app opens, and the claim type.
-    // NOT consulted: tone, threats, politeness, claimed VIP status.
-    // Governs: T-1001 (trial conversion, 0 opens), T-1006 (annual, 0 opens),
-    //          T-1012 (dissatisfaction, 2 opens -- the threatening one).
-    // Tests: "T-1001 ... Rs 249 back", "T-1006 ... Rs 1499 back",
-    //        "T-1012: the play-store threat does not change the outcome"
-    // Use POLICY_CONSTANTS.REMORSE_WINDOW_HOURS and REMORSE_MAX_APP_OPENS.
-    // Expect: decision refund, amount = facts.last_capture.amount_inr,
-    //         reason REMORSE_WINDOW_UNUSED.
+    // Charged recently, barely used => money back. Reads only time, usage and
+    // claim type. Not tone, not threats, not claimed VIP status.
     id: 'R5_REMORSE_WINDOW',
     when: (f, claim) =>
       (claim === 'unwanted_renewal' ||
@@ -215,11 +184,7 @@ const RULES: Rule[] = [
     }),
   },
   {
-    // Same claims as R5 but the window has passed or the plan was genuinely used.
-    // Governs: T-1003 under any coerced claim type (last capture ~5 months old).
-    // Test: "T-1003: no claim type an injection could force yields a payout"
-    // Expect: decision hold_for_human, amount 0, requires_human true.
-    //         reason SERVICE_USED_SUBSTANTIALLY if opens > max, else OUTSIDE_REMORSE_WINDOW.
+    // Same claims, but the window passed or the plan was genuinely used.
     id: 'R6_WINDOW_EXPIRED_OR_USED',
     when: (_f, claim) =>
       claim === 'unwanted_renewal' ||
@@ -245,9 +210,7 @@ const RULES: Rule[] = [
     },
   },
   {
-    // Wants future charges stopped, is not asking for money back.
-    // Governs: T-1004 ("cancel", one word).
-    // Expect: decision none, amount 0, reason CANCELLATION_NO_REFUND_DUE.
+    // Wants future charges stopped, not money back. (T-1004)
     id: 'R7_CANCELLATION',
     when: (_f, claim) => claim === 'cancellation',
     then: (f) => ({
@@ -259,9 +222,7 @@ const RULES: Rule[] = [
     }),
   },
   {
-    // Terminal catch-all. Must match everything so evaluateRefund always resolves.
-    // Governs: T-1002, T-1007, T-1010, and T-1003's no_billing_claim.
-    // Expect: decision none, amount 0, reason NO_BILLING_CLAIM, empty basis.
+    // Terminal. Must match everything so evaluateRefund always resolves.
     id: 'R8_DEFAULT_NO_CLAIM',
     when: () => true,
     then: () => ({
@@ -282,9 +243,8 @@ export function evaluateRefund(facts: LedgerFacts, claim: ClaimType): RefundOutc
 }
 
 /**
- * Last line of defence. Every rupee we return must be traceable to a payment we
- * actually captured. If a future rule ever violates that, this throws rather
- * than paying out -- a 500 is cheaper than money leaving on a bad rule.
+ * Last line of defence: every rupee must trace to a payment we captured. Throws
+ * rather than paying out, because a 500 is cheaper than a wrong refund.
  */
 function assertSpendable(outcome: RefundOutcome, facts: LedgerFacts): void {
   if (outcome.amount_inr === 0) return;

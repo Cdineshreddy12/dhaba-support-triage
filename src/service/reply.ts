@@ -2,14 +2,11 @@ import { Language } from '../domain/triage.js';
 import { RefundOutcome, RefundReason } from '../domain/refund-policy.js';
 
 /**
- * The model writes the empathy. This writes the money.
+ * The model writes the empathy; this writes the money.
  *
- * Every sentence below is a template keyed on the gate's reason code, so the
- * claim a user reads about their payment is generated from the same decision
- * the gate made -- it cannot drift from it, and no ticket text reaches it.
- *
- * This is also why reply_draft is safe to send after a prompt injection: the
- * money sentence is chosen by rule_id, not by anything the model produced.
+ * Each sentence is keyed on the gate's reason code, so what a user reads about
+ * their payment comes from the same decision the gate made and cannot drift
+ * from it. It is also why a draft is safe to send after a prompt injection.
  */
 
 type Phrases = Record<RefundReason, string>;
@@ -63,11 +60,7 @@ function phrasesFor(language: Language): Phrases {
   return language === 'hinglish' || language === 'hi' ? HINGLISH : EN;
 }
 
-/**
- * Appends the money sentence to the model's draft.
- *
- * Amounts are interpolated from the gate's outcome, never from the model.
- */
+/** Appends the money sentence. Amounts come from the gate, never the model. */
 export function assembleReply(
   modelBody: string,
   refund: RefundOutcome,

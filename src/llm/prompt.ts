@@ -2,12 +2,9 @@ import { LedgerFacts } from '../domain/ledger.js';
 import { Ticket } from '../domain/ticket.js';
 
 /**
- * The model is given ledger facts WITHOUT rupee amounts.
- *
- * It does not need them: picking a claim type requires knowing that a
- * conversion happened, or that an attempt failed -- not what it cost. Removing
- * amounts means the model never holds a number it could put in a reply, and the
- * only component that sees money is the gate. See docs/decisions.md D4.
+ * Ledger facts with rupee amounts stripped. Picking a claim type needs to know
+ * that a conversion happened or an attempt failed, not what it cost, so the
+ * model never holds a number it could put in a reply.
  */
 export interface RedactedLedger {
   captured_payment_count: number;

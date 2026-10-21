@@ -1,12 +1,10 @@
 import { Purchase, Ticket } from './ticket.js';
 
 /**
- * Pure derivation of what actually happened to this user's money.
+ * What actually happened to this user's money, derived from purchases[] alone.
  *
- * Everything here reads `purchases[]` and timestamps. Nothing here reads the
- * subject or the body. That separation is deliberate: the refund gate consumes
- * LedgerFacts, so no amount of persuasion, threat, or injected instruction in
- * the ticket text can reach a money decision.
+ * Nothing here reads subject or body. The refund gate consumes LedgerFacts, so
+ * that omission is what stops ticket text reaching a money decision.
  */
 
 /** Two captures of the same amount inside this window are treated as a double charge. */
@@ -22,14 +20,9 @@ const hoursBetween = (a: string, b: string): number =>
   Math.abs(new Date(b).getTime() - new Date(a).getTime()) / MS_PER_HOUR;
 
 /**
- * SIGNED elapsed time: negative when `from` is after `to`.
- *
- * Deliberately not Math.abs. `hours_since_last_capture` feeds the remorse
- * window, and an absolute value turns "this charge has not happened yet" into
- * "this charge happened moments ago" -- which reads as a fresh capture and
- * refunds it. Clock skew between billing and the help form, a backfilled
- * payment, or a ticket sitting in a queue while a charge lands are all enough
- * to produce that ordering.
+ * Signed: negative when `from` is after `to`. Not Math.abs -- an absolute value
+ * turns "hasn't happened yet" into "happened moments ago", which the remorse
+ * window then refunds.
  */
 const hoursElapsed = (from: string, to: string): number =>
   (new Date(to).getTime() - new Date(from).getTime()) / MS_PER_HOUR;
@@ -57,22 +50,14 @@ export interface LedgerFacts {
   captured_count: number;
   captured_total_inr: number;
   last_capture: Purchase | null;
-  /**
-   * Hours from the last capture to the ticket arriving. SIGNED: negative means
-   * the capture is timestamped after the ticket, which should not happen and
-   * must never be read as a recent charge. Rules guard on `>= 0`.
-   */
+  /** Signed. Negative means the capture post-dates the ticket; rules guard on >= 0. */
   hours_since_last_capture: number | null;
 
   /** Attempts that took no money but which a user may genuinely believe were charges. */
   uncaptured: Purchase[];
   has_uncaptured_attempts: boolean;
 
-  /**
-   * True when the user is complaining about money that never left their account:
-   * there are failed/initiated attempts on file and nothing recent was captured.
-   * This is the T-1005 and T-1009 shape.
-   */
+  /** Latest attempt did not capture: the T-1005 and T-1009 shape. */
   claimed_charge_is_uncaptured: boolean;
 
   duplicate_capture: DuplicateCapture | null;
@@ -126,9 +111,8 @@ export function deriveLedger(ticket: Ticket): LedgerFacts {
 }
 
 /**
- * A double charge means money left the account twice. A failed attempt beside a
- * successful one is ONE charge that the bank may have shown the user twice --
- * it is not a duplicate and must not produce a refund. (Ticket T-1009.)
+ * A duplicate means money left twice. A failed attempt beside a successful one
+ * is ONE charge the bank may have displayed twice. (T-1009.)
  */
 function findDuplicateCapture(captured: Purchase[]): DuplicateCapture | null {
   for (let i = 1; i < captured.length; i++) {

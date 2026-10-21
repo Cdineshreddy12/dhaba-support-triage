@@ -11,7 +11,6 @@ import { loadConfig } from '../src/config.js';
 import { Ticket } from '../src/domain/ticket.js';
 import { deriveLedger } from '../src/domain/ledger.js';
 import { AnthropicProvider } from '../src/llm/anthropic.js';
-import { redactLedger } from '../src/llm/prompt.js';
 
 const cfg = loadConfig();
 if (!cfg.apiKey) throw new Error('ANTHROPIC_API_KEY required to record fixtures');
@@ -26,9 +25,9 @@ mkdirSync('fixtures/replay', { recursive: true });
 console.log(`model=${cfg.model} effort=${cfg.effort} tickets=${tickets.length}\n`);
 
 for (const ticket of tickets) {
-  const ledger = redactLedger(deriveLedger(ticket));
+  const facts = deriveLedger(ticket);
   const started = Date.now();
-  const result = await provider.classify({ ticket, ledger });
+  const result = await provider.classify({ ticket, facts });
   const ms = Date.now() - started;
 
   if (!result.ok) {

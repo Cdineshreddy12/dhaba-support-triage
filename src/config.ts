@@ -1,9 +1,6 @@
 import { readFileSync, existsSync } from 'node:fs';
 
-/**
- * Loads .env without a dependency. We need four values; a library for that is
- * a supply-chain surface for no benefit.
- */
+/** Four values do not justify a dependency. */
 function loadDotEnv(path = '.env'): void {
   if (!existsSync(path)) return;
   for (const line of readFileSync(path, 'utf8').split('\n')) {
@@ -35,8 +32,7 @@ export function loadConfig(): Config {
   const requested = (process.env.TRIAGE_MODE ?? 'replay').toLowerCase();
   const apiKey = process.env.ANTHROPIC_API_KEY?.trim() || null;
 
-  // Asking for live without a key is a configuration mistake, not a runtime
-  // surprise. Fail at startup rather than on the first ticket.
+  // A config mistake, not a runtime surprise. Fail at startup, not on ticket one.
   if (requested === 'live' && !apiKey) {
     throw new Error('TRIAGE_MODE=live requires ANTHROPIC_API_KEY. Use TRIAGE_MODE=replay to run without one.');
   }

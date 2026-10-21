@@ -1,20 +1,17 @@
 /**
  * A logger that cannot leak a ticket.
  *
- * The context type below is a closed set of ids, enums, numbers and booleans.
- * There is deliberately no `extra: Record<string, unknown>` escape hatch,
- * because that is where a subject or body eventually gets passed "just for
- * debugging" and then ships.
- *
- * T-1010's body contains a company name and a GSTIN. T-1002's contains a device
- * model. Any logger that accepts free text will eventually carry them.
+ * LogContext is a closed set of ids, enums, numbers and booleans. There is no
+ * `Record<string, unknown>` escape hatch, because that is where a body gets
+ * passed "just for debugging" and then ships. T-1010's body carries a company
+ * name and a GSTIN; T-1002's carries a device model.
  */
 
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
 const LEVEL_ORDER: Record<LogLevel, number> = { debug: 10, info: 20, warn: 30, error: 40 };
 
-/** Everything loggable. Adding a field here is a reviewed decision, in one place. */
+/** Everything loggable. Adding a field is a reviewed decision, in one place. */
 export interface LogContext {
   request_id?: string;
   ticket_id?: string;
@@ -37,6 +34,7 @@ export interface LogContext {
   captured_total_inr?: number;
   duration_ms?: number;
   status_code?: number;
+  port?: number;
   /** Zod issue PATHS only, never the rejected values. */
   validation_issues?: string;
   /** Provider failure class, never the provider's message body. */

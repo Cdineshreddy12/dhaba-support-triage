@@ -18,16 +18,14 @@ export interface BuildOptions {
 }
 
 export function buildProvider(config: Config): ModelProvider {
-  if (config.mode === 'live') {
-    // loadConfig already rejected live-without-key, so this is a type narrowing
-    // rather than a runtime check.
-    return new AnthropicProvider({
-      apiKey: config.apiKey!,
-      model: config.model,
-      effort: config.effort,
-    });
-  }
-  return new ReplayProvider();
+  if (config.mode === 'replay') return new ReplayProvider();
+  if (!config.apiKey) throw new Error('live mode requires ANTHROPIC_API_KEY');
+
+  return new AnthropicProvider({
+    apiKey: config.apiKey,
+    model: config.model,
+    effort: config.effort,
+  });
 }
 
 export function buildServer(options: BuildOptions = {}): FastifyInstance {
@@ -61,7 +59,7 @@ export function buildServer(options: BuildOptions = {}): FastifyInstance {
 
     const parsed = Ticket.safeParse(request.body);
     if (!parsed.success) {
-      // Issue PATHS only. A rejected value may be ticket text.
+      // Paths only. A rejected value may be ticket text.
       const issues = parsed.error.issues
         .slice(0, 10)
         .map((i) => ({ path: i.path.map(String).join('.') || '<root>', code: i.code }));
@@ -76,8 +74,8 @@ export function buildServer(options: BuildOptions = {}): FastifyInstance {
     try {
       const decision = await service.triage(parsed.data, requestId);
 
-      // We hold ourselves to the contract we publish. This also catches
-      // assembly bugs in tests rather than in a support agent's UI.
+      // We hold ourselves to the contract we publish, and it catches assembly
+      // bugs in tests rather than in a support agent's UI.
       const validated = TriageResponse.parse(decision);
 
       logger.debug('request complete', {
@@ -102,17 +100,4 @@ export function buildServer(options: BuildOptions = {}): FastifyInstance {
   });
 
   return app;
-}
-
-// Only start a listener when run directly, so tests can import buildServer.
-if (process.argv[1] && import.meta.url.endsWith(process.argv[1].split('/').pop() ?? '')) {
-  const config = loadConfig();
-  const app = buildServer({ config });
-  app.listen({ port: config.port, host: '0.0.0.0' }).then(
-    () => process.stdout.write(JSON.stringify({ level: 'info', msg: 'listening', mode: config.mode, port: config.port }) + '\n'),
-    (error: unknown) => {
-      process.stderr.write(JSON.stringify({ level: 'error', msg: 'failed to start', error: String(error) }) + '\n');
-      process.exit(1);
-    },
-  );
 }
