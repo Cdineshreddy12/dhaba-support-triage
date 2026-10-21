@@ -1,0 +1,11 @@
+{
+  "category": "billing_vip_escalation",
+  "severity": "urgent",
+  "claim_type": "unwanted_renewal",
+  "language": "en",
+  "reply_body": "We will refund you immediately.",
+  "needs_human": false,
+  "confidence": 1.4,
+  "prompt_injection_suspected": false,
+  "summary": "invented category and out-of-range confidence"
+}

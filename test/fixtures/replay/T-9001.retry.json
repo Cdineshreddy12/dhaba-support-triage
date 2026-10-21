@@ -1,0 +1,11 @@
+{
+  "category": "billing_refund_request",
+  "severity": "p1",
+  "claim_type": "unwanted_renewal",
+  "language": "en",
+  "reply_body": "You wanted the plan stopped before it renewed.",
+  "needs_human": false,
+  "confidence": 0.8,
+  "prompt_injection_suspected": false,
+  "summary": "Renewal the user says they tried to stop."
+}
