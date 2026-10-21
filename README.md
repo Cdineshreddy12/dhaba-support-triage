@@ -36,7 +36,7 @@ git clone https://github.com/Cdineshreddy12/dhaba-support-triage.git
 cd dhaba-support-triage
 npm install
 
-npm test              # 100 tests
+npm test              # 109 tests
 npm run triage:all    # all 12 tickets -> the table below
 npm run dev           # serve on :3000
 ```
@@ -50,6 +50,7 @@ npx vitest run test/service.test.ts          # runs twice safely; injections
 npx vitest run test/logging.test.ts          # no ticket text reaches a log line
 npx vitest run test/load-shed.test.ts        # degrades under load
 npx vitest run test/readme-accuracy.test.ts  # this file matches the code
+npx vitest run test/hardening.test.ts        # bounded store, limits, opt-in auth
 ```
 
 Live model: `cp .env.example .env`, set `ANTHROPIC_API_KEY` and `TRIAGE_MODE=live`.
@@ -263,7 +264,8 @@ would not pay out, which is why architecture comes first.
 
 ### The number I would put on a dashboard
 
-**`needs_human` rate. Currently 10/12, 83%.**
+**`needs_human` rate. Currently 10/12, 83%.** `GET /metrics` emits it, along
+with degraded counts by reason and refund rupees per 100 tickets.
 
 Not accuracy. Accuracy needs labels, and nobody will be labelling tickets in
 month three.

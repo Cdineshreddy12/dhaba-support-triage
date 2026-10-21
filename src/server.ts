@@ -11,6 +11,7 @@ import { ModelProvider } from './llm/provider.js';
 import { IdempotencyGuard, InMemoryDecisionStore } from './service/idempotency.js';
 import { TriageService } from './service/triage-service.js';
 import { LoadShedder } from './service/load-shedder.js';
+import { Metrics } from './service/metrics.js';
 
 export interface BuildOptions {
   config?: Config;
@@ -34,24 +35,51 @@ export function buildServer(options: BuildOptions = {}): FastifyInstance {
   const logger = options.logger ?? createLogger(config.logLevel as LogLevel);
   const provider = options.provider ?? buildProvider(config);
 
+  const metrics = new Metrics();
+
   const service = new TriageService({
     provider,
     guard: new IdempotencyGuard(new InMemoryDecisionStore()),
     logger,
     confidenceFloor: config.confidenceFloor,
     shedder: new LoadShedder(config.maxConcurrentModelCalls),
+    metrics,
   });
 
   // Fastify's own logger is off: it prints request URLs and headers, and we
   // control exactly what reaches a log line. See src/log.ts.
-  const app = Fastify({ logger: false, genReqId: () => randomUUID() });
+  const app = Fastify({
+    logger: false,
+    genReqId: () => randomUUID(),
+    // A ticket is a few KB. 1MB of it is not a ticket.
+    bodyLimit: 256 * 1024,
+    // A request that has not finished in a minute is not going to.
+    requestTimeout: 60_000,
+  });
+
+  // Off unless a token is configured, so a clean clone runs without one.
+  if (config.authToken) {
+    app.addHook('onRequest', async (request, reply) => {
+      if (request.method === 'GET') return;
+      if (request.headers.authorization !== `Bearer ${config.authToken}`) {
+        logger.warn('rejected unauthenticated request', {
+          request_id: request.id,
+          status_code: 401,
+        });
+        return reply.code(401).send({ error: 'unauthorized' });
+      }
+    });
+  }
 
   app.get('/', async () => ({
     service: 'dhaba-support-triage',
-    endpoints: ['POST /triage', 'GET /healthz', 'GET /readyz'],
+    endpoints: ['POST /triage', 'GET /metrics', 'GET /healthz', 'GET /readyz'],
   }));
 
   app.get('/healthz', async () => ({ status: 'ok' }));
+
+  /** The numbers from the README's dashboard answer, counted rather than proposed. */
+  app.get('/metrics', async () => metrics.snapshot());
 
   app.get('/readyz', async () => ({
     status: 'ok',

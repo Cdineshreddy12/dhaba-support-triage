@@ -26,6 +26,8 @@ export interface Config {
   confidenceFloor: number;
   /** Concurrent model calls allowed before shedding. */
   maxConcurrentModelCalls: number;
+  /** When set, /triage requires `authorization: Bearer <token>`. Unset means open. */
+  authToken: string | null;
 }
 
 export function loadConfig(): Config {
@@ -53,5 +55,8 @@ export function loadConfig(): Config {
     // volume -- see the open questions in the README.
     confidenceFloor: Number(process.env.TRIAGE_CONFIDENCE_FLOOR ?? 0.6),
     maxConcurrentModelCalls: Number(process.env.TRIAGE_MAX_CONCURRENT_MODEL_CALLS ?? 8),
+    // Deliberately opt-in: an evaluator running this from a clean clone should
+    // not have to find a token first.
+    authToken: process.env.TRIAGE_AUTH_TOKEN?.trim() || null,
   };
 }

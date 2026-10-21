@@ -10,15 +10,34 @@ export interface DecisionStore {
   put(ticketId: string, decision: TriageResponse): Promise<void>;
 }
 
+/**
+ * Bounded, because an unbounded Map in a long-running process is a leak.
+ *
+ * Eviction is FIFO on insertion order, and it has a real cost: an evicted
+ * ticket is no longer protected, so a re-POST after eviction decides again.
+ * That is the honest limit of doing this in memory, and the reason the
+ * production shape is a row with a unique constraint — the database cannot
+ * forget. See the storage sketch in the README.
+ */
 export class InMemoryDecisionStore implements DecisionStore {
   private readonly decisions = new Map<string, TriageResponse>();
+
+  constructor(private readonly maxEntries = 10_000) {}
 
   async get(ticketId: string): Promise<TriageResponse | null> {
     return this.decisions.get(ticketId) ?? null;
   }
 
   async put(ticketId: string, decision: TriageResponse): Promise<void> {
+    if (!this.decisions.has(ticketId) && this.decisions.size >= this.maxEntries) {
+      const oldest = this.decisions.keys().next().value;
+      if (oldest !== undefined) this.decisions.delete(oldest);
+    }
     this.decisions.set(ticketId, decision);
+  }
+
+  get size(): number {
+    return this.decisions.size;
   }
 }
 

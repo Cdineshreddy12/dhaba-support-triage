@@ -8,6 +8,7 @@ import { assembleReply } from './reply.js';
 import { IdempotencyGuard } from './idempotency.js';
 import { Logger } from '../log.js';
 import { LoadShedder } from './load-shedder.js';
+import { Metrics } from './metrics.js';
 
 export interface TriageServiceOptions {
   provider: ModelProvider;
@@ -17,6 +18,8 @@ export interface TriageServiceOptions {
   confidenceFloor: number;
   /** Caps concurrent model calls. Omit to never shed. */
   shedder?: LoadShedder;
+  /** Counts what the README says it would watch. Omit to count nothing. */
+  metrics?: Metrics;
   /** Injected so tests are deterministic. */
   now?: () => Date;
 }
@@ -40,7 +43,13 @@ export class TriageService {
       this.decide(ticket, log),
     );
 
-    if (!replayed) return decision;
+    if (!replayed) {
+      this.opts.metrics?.record(decision);
+      return decision;
+    }
+
+    const replayedDecision = { ...decision, meta: { ...decision.meta, idempotent_replay: true } };
+    this.opts.metrics?.record(replayedDecision);
 
     log.info('returned stored decision', {
       idempotent_replay: true,
@@ -48,7 +57,7 @@ export class TriageService {
       refund_amount_inr: decision.refund.amount_inr,
       rule_id: decision.refund.rule_id,
     });
-    return { ...decision, meta: { ...decision.meta, idempotent_replay: true } };
+    return replayedDecision;
   }
 
   private async decide(ticket: Ticket, log: Logger): Promise<TriageResponse> {
