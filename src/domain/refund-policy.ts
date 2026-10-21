@@ -72,21 +72,17 @@ interface Rule {
 }
 
 /**
- * ============================================================================
- * TO BE WRITTEN BY HAND.
+ * The policy, as ordered data. First match wins.
  *
- * Each entry below states what the rule must do, which tickets it governs, and
- * the test that pins it. Write `when` and `then`; the tests are the spec and
- * they are currently red.
+ * ORDER IS THE LOGIC, not formatting. R0 sits above R5 because an elder-fraud
+ * report must reach a person even when the ledger would otherwise refund it;
+ * R8 sits last because it must catch everything so evaluateRefund always
+ * resolves. Moving a row changes policy.
  *
- * Reminders that are easy to get wrong:
- *   - ORDER IS THE LOGIC. First match wins. Safety rules go first.
- *   - `when` may read ONLY LedgerFacts and ClaimType. Never ticket text.
- *   - `amount_inr` must be read off a Purchase in facts.captured.
- *     Never a plan price, never a number from the ticket, never computed.
- *   - `basis` is the audit trail: the ids and numbers the rule relied on.
- *   - Run `npm test` after each rule; the invariant tests catch over-reach.
- * ============================================================================
+ * Every `when` reads only LedgerFacts and ClaimType. Every `amount_inr` is read
+ * off a Purchase in facts.captured -- never a plan price, never a literal,
+ * never arithmetic. `basis` records what the rule relied on, so a decision can
+ * be explained later without re-reading the ticket.
  */
 const RULES: Rule[] = [
   {
@@ -96,8 +92,17 @@ const RULES: Rule[] = [
     // Expect: decision hold_for_human, amount 0, requires_human true,
     //         reason FRAUD_CLAIM_NEEDS_IDENTITY_CHECK.
     id: 'R0_FRAUD_TO_HUMAN',
-    when: () => TODO('R0_FRAUD_TO_HUMAN'),
-    then: () => TODO('R0_FRAUD_TO_HUMAN'),
+    when: (_f, claim) => claim === 'unauthorized_charge',
+    then: (f) => ({
+      decision: 'hold_for_human',
+      amount_inr: 0,
+      reason: 'FRAUD_CLAIM_NEEDS_IDENTITY_CHECK',
+      requires_human: true,
+      basis: {
+        captured_count: f.captured_count,
+        captured_total_inr: f.captured_total_inr,
+      },
+    }),
   },
   {
     // Nothing was ever captured on this account, so there is nothing to return.
@@ -105,8 +110,14 @@ const RULES: Rule[] = [
     // Test: "T-1011 has no purchases, so every claim resolves to zero"
     // Expect: decision none, amount 0, reason NO_CAPTURED_PAYMENT.
     id: 'R1_NOTHING_CAPTURED',
-    when: () => TODO('R1_NOTHING_CAPTURED'),
-    then: () => TODO('R1_NOTHING_CAPTURED'),
+    when: (f) => f.captured_total_inr === 0,
+    then: () => ({
+      decision: 'none',
+      amount_inr: 0,
+      reason: 'NO_CAPTURED_PAYMENT',
+      requires_human: false,
+      basis: { captured_count: 0 },
+    }),
   },
   {
     // The user sincerely believes money left their account; the ledger says the
@@ -116,16 +127,37 @@ const RULES: Rule[] = [
     // Expect: decision none, amount 0, requires_human TRUE,
     //         reason CLAIMED_CHARGE_NEVER_CAPTURED. Put the uncaptured ids in basis.
     id: 'R2_CLAIMED_CHARGE_NEVER_CAPTURED',
-    when: () => TODO('R2_CLAIMED_CHARGE_NEVER_CAPTURED'),
-    then: () => TODO('R2_CLAIMED_CHARGE_NEVER_CAPTURED'),
+    when: (f, claim) => claim === 'payment_not_reflected' && f.claimed_charge_is_uncaptured,
+    then: (f) => ({
+      decision: 'none',
+      amount_inr: 0,
+      reason: 'CLAIMED_CHARGE_NEVER_CAPTURED',
+      // Nothing to refund, but a stuck payment still needs someone to unstick it.
+      requires_human: true,
+      basis: {
+        uncaptured_ids: f.uncaptured.map((p) => p.id).join(','),
+        captured_total_inr: f.captured_total_inr,
+      },
+    }),
   },
   {
     // A genuine double charge: two CAPTURES of the same amount close together.
     // No fixture ticket hits this -- the rule exists because the claim does.
     // Expect: decision refund, amount = the duplicate capture's amount.
     id: 'R3_DUPLICATE_CONFIRMED',
-    when: () => TODO('R3_DUPLICATE_CONFIRMED'),
-    then: () => TODO('R3_DUPLICATE_CONFIRMED'),
+    when: (f, claim) => claim === 'duplicate_charge' && f.duplicate_capture !== null,
+    then: (f) => ({
+      decision: 'refund',
+      // The second capture's own amount. Not a plan price, not doubled.
+      amount_inr: f.duplicate_capture!.amount_inr,
+      reason: 'DUPLICATE_CAPTURE_CONFIRMED',
+      requires_human: false,
+      basis: {
+        original_id: f.duplicate_capture!.original_id,
+        duplicate_id: f.duplicate_capture!.duplicate_id,
+        hours_apart: f.duplicate_capture!.hours_apart,
+      },
+    }),
   },
   {
     // "You charged me twice" with only one capture on file. Explain, do not pay.
@@ -133,8 +165,17 @@ const RULES: Rule[] = [
     // Test: "T-1009 duplicate claim against a single capture pays nothing"
     // Expect: decision none, amount 0, reason NOT_A_DUPLICATE_ONE_CAPTURE_ONLY.
     id: 'R4_DUPLICATE_CLAIMED_BUT_SINGLE_CAPTURE',
-    when: () => TODO('R4_DUPLICATE_CLAIMED_BUT_SINGLE_CAPTURE'),
-    then: () => TODO('R4_DUPLICATE_CLAIMED_BUT_SINGLE_CAPTURE'),
+    when: (f, claim) => claim === 'duplicate_charge' && f.duplicate_capture === null,
+    then: (f) => ({
+      decision: 'none',
+      amount_inr: 0,
+      reason: 'NOT_A_DUPLICATE_ONE_CAPTURE_ONLY',
+      requires_human: false,
+      basis: {
+        captured_count: f.captured_count,
+        failed_or_pending_ids: f.uncaptured.map((p) => p.id).join(','),
+      },
+    }),
   },
   {
     // The remorse window. Charged recently, barely used => money back.
@@ -148,8 +189,30 @@ const RULES: Rule[] = [
     // Expect: decision refund, amount = facts.last_capture.amount_inr,
     //         reason REMORSE_WINDOW_UNUSED.
     id: 'R5_REMORSE_WINDOW',
-    when: () => TODO('R5_REMORSE_WINDOW'),
-    then: () => TODO('R5_REMORSE_WINDOW'),
+    when: (f, claim) =>
+      (claim === 'unwanted_renewal' ||
+        claim === 'trial_conversion_surprise' ||
+        claim === 'dissatisfaction') &&
+      f.last_capture !== null &&
+      f.hours_since_last_capture !== null &&
+      // Lower bound as well as upper. A capture timestamped after the ticket
+      // gives a negative elapsed time, and `<= 72` is true for every negative
+      // number -- so without this the window would open on charges that have
+      // not happened yet.
+      f.hours_since_last_capture >= 0 &&
+      f.hours_since_last_capture <= REMORSE_WINDOW_HOURS &&
+      f.app_opens_since_renewal <= REMORSE_MAX_APP_OPENS,
+    then: (f) => ({
+      decision: 'refund',
+      amount_inr: f.last_capture!.amount_inr,
+      reason: 'REMORSE_WINDOW_UNUSED',
+      requires_human: false,
+      basis: {
+        capture_id: f.last_capture!.id,
+        hours_since_capture: Number(f.hours_since_last_capture!.toFixed(2)),
+        app_opens_since_renewal: f.app_opens_since_renewal,
+      },
+    }),
   },
   {
     // Same claims as R5 but the window has passed or the plan was genuinely used.
@@ -158,31 +221,58 @@ const RULES: Rule[] = [
     // Expect: decision hold_for_human, amount 0, requires_human true.
     //         reason SERVICE_USED_SUBSTANTIALLY if opens > max, else OUTSIDE_REMORSE_WINDOW.
     id: 'R6_WINDOW_EXPIRED_OR_USED',
-    when: () => TODO('R6_WINDOW_EXPIRED_OR_USED'),
-    then: () => TODO('R6_WINDOW_EXPIRED_OR_USED'),
+    when: (_f, claim) =>
+      claim === 'unwanted_renewal' ||
+      claim === 'trial_conversion_surprise' ||
+      claim === 'dissatisfaction',
+    then: (f) => {
+      const used = f.app_opens_since_renewal > REMORSE_MAX_APP_OPENS;
+      return {
+        decision: 'hold_for_human' as const,
+        amount_inr: 0,
+        reason: used
+          ? ('SERVICE_USED_SUBSTANTIALLY' as const)
+          : ('OUTSIDE_REMORSE_WINDOW' as const),
+        requires_human: true,
+        basis: {
+          hours_since_capture:
+            f.hours_since_last_capture === null
+              ? null
+              : Number(f.hours_since_last_capture.toFixed(2)),
+          app_opens_since_renewal: f.app_opens_since_renewal,
+        },
+      };
+    },
   },
   {
     // Wants future charges stopped, is not asking for money back.
     // Governs: T-1004 ("cancel", one word).
     // Expect: decision none, amount 0, reason CANCELLATION_NO_REFUND_DUE.
     id: 'R7_CANCELLATION',
-    when: () => TODO('R7_CANCELLATION'),
-    then: () => TODO('R7_CANCELLATION'),
+    when: (_f, claim) => claim === 'cancellation',
+    then: (f) => ({
+      decision: 'none',
+      amount_inr: 0,
+      reason: 'CANCELLATION_NO_REFUND_DUE',
+      requires_human: false,
+      basis: { captured_total_inr: f.captured_total_inr },
+    }),
   },
   {
     // Terminal catch-all. Must match everything so evaluateRefund always resolves.
     // Governs: T-1002, T-1007, T-1010, and T-1003's no_billing_claim.
     // Expect: decision none, amount 0, reason NO_BILLING_CLAIM, empty basis.
     id: 'R8_DEFAULT_NO_CLAIM',
-    when: () => TODO('R8_DEFAULT_NO_CLAIM'),
-    then: () => TODO('R8_DEFAULT_NO_CLAIM'),
+    when: () => true,
+    then: () => ({
+      decision: 'none',
+      amount_inr: 0,
+      reason: 'NO_BILLING_CLAIM',
+      requires_human: false,
+      basis: {},
+    }),
   },
 ];
-
-/** Placeholder so the stub typechecks. Delete every call as you write the rules. */
-function TODO(ruleId: string): never {
-  throw new Error(`refund rule ${ruleId} is not written yet`);
-}
 
 export function evaluateRefund(facts: LedgerFacts, claim: ClaimType): RefundOutcome {
   const rule = RULES.find((r) => r.when(facts, claim)) ?? RULES[RULES.length - 1]!;
