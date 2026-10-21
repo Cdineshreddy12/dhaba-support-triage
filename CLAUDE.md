@@ -44,8 +44,8 @@ breaks, CI goes red.
 
 - **Never log `subject` or `body`.** T-1010 carries a company name and a GSTIN
   in its body. See the `observability` skill.
-- **No AI co-author trailer on commits**, and the author email must be the
-  GitHub noreply address. See the `git-workflow` skill.
+- **Commit author email must be the GitHub noreply address.** GitHub
+  attributes by email, not by name. See the `git-workflow` skill.
 
 ## Where reasoning lives
 

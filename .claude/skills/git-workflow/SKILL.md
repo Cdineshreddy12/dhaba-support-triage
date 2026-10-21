@@ -1,6 +1,6 @@
 ---
 name: git-workflow
-description: Commit, branch, and GitHub conventions for the Dhaba triage repo. Load before every commit, before pushing, and before opening a PR. Carries two hard rules - no AI co-author trailer, and the commit author email must be the GitHub noreply address - plus the reasons the history itself is being graded.
+description: Commit, branch, and GitHub conventions for the Dhaba triage repo. Load before every commit, before pushing, and before opening a PR. Covers commit authorship and identity, message style, granularity, and the reasons the history itself is being graded.
 ---
 
 # Git workflow
@@ -9,22 +9,9 @@ description: Commit, branch, and GitHub conventions for the Dhaba triage repo. L
 go; we read the history."* A repo whose history is one large commit reads as
 work done in a single session at the deadline, whatever its quality.
 
-## Two hard rules
+## Commit identity
 
-**1. No AI attribution in commits. Ever.**
-
-No `Co-Authored-By: Claude`, no `Generated with`, no agent name in a trailer or
-message body. This is a standing instruction from the repo owner and it is not
-negotiable. AI usage is disclosed where the brief asks for it — `docs/ai-log.md`
-and the README's task 4 section — not stamped into commit metadata.
-
-Verify after committing:
-
-```bash
-git log -1 --format='%b'   # must be empty of trailers
-```
-
-**2. Author email is the GitHub noreply address.**
+Author email must be the GitHub noreply address:
 
 ```
 142651342+Cdineshreddy12@users.noreply.github.com
@@ -48,7 +35,7 @@ gh api repos/Cdineshreddy12/dhaba-support-triage/commits \
 
 Subject in imperative mood, `type: summary` under ~72 chars. Body explains
 **why**, and especially what was rejected — the history is where reasoning is
-visible to a reviewer who was not there.
+visible to a reviewer who was not there. No trailers.
 
 Types in use: `feat` `fix` `test` `chore` `docs` `refactor`.
 
@@ -65,8 +52,8 @@ rule ever returns money with no capture behind it.
 Bad: `update files`, `fix bug`, `wip`, or a list of changed filenames — all of
 which `git diff` already says better.
 
-Record a caught agent mistake in the message when one is being fixed. Those
-commits are evidence of supervision and they are what task 4 is written from.
+When a commit fixes a wrong assumption, say what the assumption was. Those are
+the most useful commits in the history to a reviewer.
 
 ## Granularity
 
@@ -87,7 +74,7 @@ work sample of how you behave on a team.
 ## Before pushing
 
 ```bash
-npm run typecheck && npm test && git log -1 --format='%an <%ae>%n%b'
+npm run typecheck && npm test && git log -1 --format='%an <%ae>'
 ```
 
 Never push a red main. CI runs without an API key, so a green local run with a
