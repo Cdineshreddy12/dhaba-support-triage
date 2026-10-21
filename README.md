@@ -13,7 +13,6 @@ category, severity, refund decision, reply draft in the user's language,
 | Schemas | Zod 4 |
 | Model | `@anthropic-ai/sdk` 0.137, Claude Sonnet 5 |
 | Tests | Vitest 2 |
-| Console | React 18, Vite 6, Tailwind 4 |
 | Dev | tsx |
 
 ## Layout
@@ -23,7 +22,6 @@ src/domain/   schemas, ledger derivation, refund gate, escalations
 src/llm/      prompt, provider interface, Anthropic + replay providers
 src/service/  orchestration, idempotency, load shedding, reply assembly
 src/log.ts    the redacting logger
-web/          React console (demo aid, not task 3)
 fixtures/     the 12 tickets and recorded model responses
 docs/         decisions.md
 ```
@@ -40,8 +38,7 @@ npm install
 
 npm test              # 100 tests
 npm run triage:all    # all 12 tickets -> the table below
-npm run dev           # :3000
-npm run console       # + React console at http://localhost:3000
+npm run dev           # serve on :3000
 ```
 
 One command per graded property, all keyless:
@@ -54,10 +51,6 @@ npx vitest run test/logging.test.ts          # no ticket text reaches a log line
 npx vitest run test/load-shed.test.ts        # degrades under load
 npx vitest run test/readme-accuracy.test.ts  # this file matches the code
 ```
-
-`npm run console` chains install, build and serve, so it prints npm output for
-~25 seconds before anything is listening. `npm run dev` alone serves the API
-without the console; `/` then returns the endpoint list rather than the UI.
 
 Live model: `cp .env.example .env`, set `ANTHROPIC_API_KEY` and `TRIAGE_MODE=live`.
 CI runs on every push with no key configured.
@@ -306,8 +299,9 @@ shed intake last — `429` with `Retry-After`, health endpoints stay up.
 **While degraded:** nothing auto-sends (`needs_human` true on every shed
 decision); the user gets an honest acknowledgement, which is what
 `fallbackVerdict()` returns today; refund decisions still land from the ledger;
-the agent sees `meta.degraded` as a banner so a rules-only decision does not
-look confident.
+and `meta.degraded` is in the response, so a queue can mark rules-only items as
+unread rather than pre-triaged. The failure to avoid is an agent trusting a
+degraded classification because it is shaped like a confident one.
 
 ### Storage
 

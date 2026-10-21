@@ -1,8 +1,6 @@
 import Fastify, { FastifyInstance } from 'fastify';
 import { randomUUID } from 'node:crypto';
-import { existsSync, readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
-import fastifyStatic from '@fastify/static';
+import { existsSync } from 'node:fs';
 import { loadConfig, Config } from './config.js';
 import { Ticket } from './domain/ticket.js';
 import { TriageResponse } from './domain/triage.js';
@@ -13,8 +11,6 @@ import { ModelProvider } from './llm/provider.js';
 import { IdempotencyGuard, InMemoryDecisionStore } from './service/idempotency.js';
 import { TriageService } from './service/triage-service.js';
 import { LoadShedder } from './service/load-shedder.js';
-
-const TICKETS_FILE = 'fixtures/dhaba_tickets.json';
 
 export interface BuildOptions {
   config?: Config;
@@ -50,27 +46,10 @@ export function buildServer(options: BuildOptions = {}): FastifyInstance {
   // control exactly what reaches a log line. See src/log.ts.
   const app = Fastify({ logger: false, genReqId: () => randomUUID() });
 
-  // Demo console. Served only if web/dist exists, so the API never depends on
-  // the UI being built and `npm test` is unaffected either way.
-  const webDist = resolve('web/dist');
-  if (existsSync(webDist)) {
-    app.register(fastifyStatic, { root: webDist, prefix: '/' });
-  } else {
-    // Without this, `npm run dev` then opening the browser is a bare 404 with
-    // nothing saying the console is a separate build.
-    app.get('/', async () => ({
-      service: 'dhaba-support-triage',
-      endpoints: ['POST /triage', 'GET /tickets', 'GET /healthz', 'GET /readyz'],
-      console: 'not built — run `npm run console`',
-    }));
-  }
-
-  /** Demo data source for the console: the fixture inbox, unmodified. */
-  app.get('/tickets', async (_request, reply) => {
-    if (!existsSync(TICKETS_FILE)) return reply.code(404).send({ error: 'fixtures_missing' });
-    const raw = JSON.parse(readFileSync(TICKETS_FILE, 'utf8')) as { tickets: unknown[] };
-    return reply.send(raw.tickets.map((t) => Ticket.parse(t)));
-  });
+  app.get('/', async () => ({
+    service: 'dhaba-support-triage',
+    endpoints: ['POST /triage', 'GET /healthz', 'GET /readyz'],
+  }));
 
   app.get('/healthz', async () => ({ status: 'ok' }));
 
