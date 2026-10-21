@@ -36,7 +36,7 @@ git clone https://github.com/Cdineshreddy12/dhaba-support-triage.git
 cd dhaba-support-triage
 npm install
 
-npm test              # 109 tests
+npm test              # 114 tests
 npm run triage:all    # all 12 tickets -> the table below
 npm run dev           # serve on :3000
 ```
@@ -51,6 +51,7 @@ npx vitest run test/logging.test.ts          # no ticket text reaches a log line
 npx vitest run test/load-shed.test.ts        # degrades under load
 npx vitest run test/readme-accuracy.test.ts  # this file matches the code
 npx vitest run test/hardening.test.ts        # bounded store, limits, opt-in auth
+npx vitest run test/explain.test.ts          # the rule trace matches the gate
 ```
 
 Live model: `cp .env.example .env`, set `ANTHROPIC_API_KEY` and `TRIAGE_MODE=live`.
@@ -372,10 +373,32 @@ six months later. Revisions rather than an updated row, because the useful
 question is what the agent changed before sending. If Redis dies, Postgres still
 refuses the second decision. Raw tickets live in the support system, not here.
 
-### One thing for 3am
+### One thing for 3am — built
 
-**`GET /decisions/:ticket_id/explain`** — replay from `ledger_basis` and
-`rules_version`, showing which rules were evaluated, which matched, and why the
-others did not. The 3am question is never "what did it decide" (that is in the
-logs) but "why did this user get ₹1499 and that one nothing". Everything is
-recorded except the counterfactual.
+**`POST /triage/explain`** returns every rule in order, which matched, and the
+ledger facts each was judged on. It calls no model and re-derives from the
+ticket, so it is free to run against a live incident.
+
+The 3am question is never "what did it decide" — the log line carries the rule
+id, the reason and the basis. It is *"why did this user get ₹1499 and that one
+nothing"*, and answering that means seeing the rules that were **passed over**.
+No log line carries a counterfactual.
+
+T-1009, where the user insists they were charged twice:
+
+```
+decided_by: R4_DUPLICATE_CLAIMED_BUT_SINGLE_CAPTURE
+
+          R3_DUPLICATE_CONFIRMED                     <- the rule that would have paid
+  MATCHED R4_DUPLICATE_CLAIMED_BUT_SINGLE_CAPTURE    -> none ₹0
+
+ledger: captured [pay_I2 ₹249] · uncaptured [pay_I1 failed] · duplicate_capture null
+```
+
+The rule that would have refunded is right there, unmatched, next to the fact
+that stopped it. `test/explain.test.ts` asserts the trace can never name a
+different winner than `evaluateRefund` does — a debugging view that disagrees
+with the code is worse than none, because it gets believed.
+
+In production this would read the stored `ledger_basis` and `rules_version`
+rather than re-deriving, so it answers for the policy that was live at the time.
