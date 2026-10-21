@@ -18,7 +18,7 @@ git clone https://github.com/Cdineshreddy12/dhaba-support-triage.git
 cd dhaba-support-triage
 npm install
 
-npm test              # 84 tests
+npm test              # 90 tests
 npm run typecheck
 npm run triage:all    # all 12 tickets, prints the table below
 ```
@@ -91,8 +91,18 @@ ledger shows one capture and one failure, and the gate returns
 
 **Output holds its shape.** The model is constrained server-side with
 `messages.parse` and `zodOutputFormat`, then re-validated against `ModelVerdict`
-here. If validation fails: retry once with the issue path fed back, then degrade
-to `rules_only`. It is a real code path with tests in `test/service.test.ts`.
+here. If that fails: retry once with the issue path fed back, then degrade to
+`rules_only`.
+
+The brief names three shapes of bad output and they fail at different places.
+An invented category reaches the schema and is rejected by it. Prose and
+truncated json never get that far — they die in `JSON.parse`. Each has a
+recording and a test in `test/malformed.test.ts`, including one asserting that a
+refundable ticket still gets its money decision from the rules while degraded.
+
+I had only covered the invented-category case and assumed it stood in for the
+others. It did not: both parse failures threw, and the live provider classified
+them as `unavailable`, which is the one class the retry deliberately skips.
 
 One retry, not a loop. A model that returns prose twice will return it a third
 time, and a ticket has a latency budget. Transport retries (429, 5xx) belong to
