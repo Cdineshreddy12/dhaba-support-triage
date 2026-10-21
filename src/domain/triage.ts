@@ -94,6 +94,18 @@ export const TriageResponse = z.object({
     entitlement_lapsed: z.boolean(),
     claimed_charge_never_captured: z.boolean(),
   }),
+  /**
+   * Why the ledger demanded attention, independent of what the ticket said.
+   * Empty for most tickets. A queue should show these -- they are the reason a
+   * cheerful p3 message can still need a person.
+   */
+  escalations: z.array(
+    z.object({
+      code: z.string(),
+      severity_floor: Severity,
+      requires_human: z.boolean(),
+    }),
+  ),
   meta: z.object({
     mode: z.enum(['live', 'replay', 'rules_only']),
     degraded: Degradation,

@@ -1,6 +1,7 @@
 import { Ticket } from '../domain/ticket.js';
 import { deriveLedger, LedgerFacts } from '../domain/ledger.js';
 import { evaluateRefund, RefundOutcome } from '../domain/refund-policy.js';
+import { applySeverityFloors, deriveEscalations, Escalation } from '../domain/escalation.js';
 import { Degradation, ModelVerdict, TriageResponse } from '../domain/triage.js';
 import { ModelProvider } from '../llm/provider.js';
 import { assembleReply } from './reply.js';
@@ -52,9 +53,10 @@ export class TriageService {
     // not, claim_type is 'no_billing_claim', so degrading produces a human
     // rather than a payout.
     const refund = evaluateRefund(facts, classification.verdict.claim_type);
+    const escalations = deriveEscalations(facts);
 
-    const response = this.buildResponse(ticket, facts, classification, refund);
-    this.logDecision(log, response, classification, refund, facts);
+    const response = this.buildResponse(ticket, facts, classification, refund, escalations);
+    this.logDecision(log, response, classification, refund, facts, escalations);
     return response;
   }
 
@@ -63,11 +65,12 @@ export class TriageService {
     facts: LedgerFacts,
     { verdict, degraded, attempts }: Classification,
     refund: RefundOutcome,
+    escalations: Escalation[],
   ): TriageResponse {
     return {
       ticket_id: ticket.id,
       category: verdict.category,
-      severity: verdict.severity,
+      severity: applySeverityFloors(verdict.severity, escalations),
       refund: {
         decision: refund.decision,
         amount_inr: refund.amount_inr,
@@ -79,7 +82,7 @@ export class TriageService {
       },
       reply_draft: assembleReply(verdict.reply_body, refund, verdict.language),
       language: verdict.language,
-      needs_human: this.needsHuman(verdict, refund, degraded),
+      needs_human: this.needsHuman(verdict, refund, escalations, degraded),
       confidence: verdict.confidence,
       summary: verdict.summary,
       flags: {
@@ -87,6 +90,7 @@ export class TriageService {
         entitlement_lapsed: facts.entitlement_lapsed,
         claimed_charge_never_captured: facts.claimed_charge_is_uncaptured,
       },
+      escalations,
       meta: {
         mode: degraded === 'none' ? this.opts.provider.mode : 'rules_only',
         degraded,
@@ -101,6 +105,7 @@ export class TriageService {
   private needsHuman(
     verdict: ModelVerdict,
     refund: RefundOutcome,
+    escalations: Escalation[],
     degraded: Degradation,
   ): boolean {
     return (
@@ -108,6 +113,7 @@ export class TriageService {
       refund.requires_human ||
       verdict.confidence < this.opts.confidenceFloor ||
       verdict.prompt_injection_suspected ||
+      escalations.some((e) => e.requires_human) ||
       degraded !== 'none'
     );
   }
@@ -152,8 +158,10 @@ export class TriageService {
     { verdict, degraded, attempts }: Classification,
     refund: RefundOutcome,
     facts: LedgerFacts,
+    escalations: Escalation[],
   ): void {
     log.info('triage decided', {
+      ...(escalations.length > 0 && { escalations: escalations.map((e) => e.code).join(',') }),
       mode: response.meta.mode,
       degraded,
       model_attempts: attempts,

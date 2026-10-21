@@ -60,6 +60,17 @@ export interface LedgerFacts {
   /** Latest attempt did not capture: the T-1005 and T-1009 shape. */
   claimed_charge_is_uncaptured: boolean;
 
+  /**
+   * The latest attempt is `initiated` -- non-terminal, so money may be held by
+   * the bank right now and somebody has to resolve it with the provider.
+   *
+   * Distinct from `claimed_charge_is_uncaptured`, which is also true for a
+   * `failed` attempt. A failure is terminal: nothing is pending, nothing is
+   * held, and no one needs to chase the provider. Conflating the two escalates
+   * every lapsed subscription as if a payment were stuck.
+   */
+  payment_pending: boolean;
+
   duplicate_capture: DuplicateCapture | null;
   trial_conversion: TrialConversion | null;
 
@@ -97,6 +108,8 @@ export function deriveLedger(ticket: Ticket): LedgerFacts {
     has_uncaptured_attempts: uncaptured.length > 0,
     claimed_charge_is_uncaptured:
       uncaptured.length > 0 && latestAttempt !== null && latestAttempt.status !== 'successful',
+
+    payment_pending: latestAttempt !== null && latestAttempt.status === 'initiated',
 
     duplicate_capture: findDuplicateCapture(captured),
     trial_conversion: findTrialConversion(all),
