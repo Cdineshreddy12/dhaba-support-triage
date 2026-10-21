@@ -44,6 +44,25 @@ npx tsx scripts/record-fixtures.ts T-1003    # or one
 CI runs on every push with no API key configured. If replay mode breaks, CI goes
 red. That is deliberate.
 
+### The console
+
+There is a small React front end for looking at the twelve tickets. It is a
+demo aid, not task 3 — task 3 is the backend write-up below.
+
+```bash
+npm run console       # installs web deps, builds, serves everything on :3000
+```
+
+Fastify serves the built bundle at `/` only if `web/dist` exists, so the API and
+the tests never depend on the UI having been built. For front-end work with hot
+reload, `npm run web:dev` runs Vite on :5180 and proxies the API.
+
+It shows what the service returns, including the parts that are easy to miss in
+JSON: what the model claimed next to what the gate decided, the ledger with
+uncaptured attempts struck through, which rule fired and on what facts, and why
+a ticket was escalated. The Sandbox tab takes a pasted ticket, so you can write
+your own injection and watch it fail to move the money.
+
 ---
 
 ## How it is put together
@@ -651,6 +670,7 @@ version missed someone, but the numbers are mine.
 ## Layout
 
 ```
+web/            react console (demo aid; see "The console" above)
 src/domain/     ticket + triage schemas, ledger derivation, refund gate, escalations
 src/llm/        prompt, provider interface, Anthropic provider, replay provider
 src/service/    orchestration, idempotency, reply assembly
