@@ -216,6 +216,10 @@ export class TriageService {
       refund_amount_inr: refund.amount_inr,
       refund_reason: refund.reason,
       rule_id: refund.rule_id,
+      // Why it fired, not just that it did. Ids and numbers only.
+      rule_basis: Object.entries(refund.basis)
+        .map(([k, v]) => `${k}=${v ?? ''}`)
+        .join(' '),
       captured_count: facts.captured_count,
       captured_total_inr: facts.captured_total_inr,
     });

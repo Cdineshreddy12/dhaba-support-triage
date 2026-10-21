@@ -30,6 +30,8 @@ export interface LogContext {
   refund_amount_inr?: number;
   refund_reason?: string;
   rule_id?: string;
+  /** The ids and numbers the rule relied on. Enum-shaped by construction -- see RefundOutcome.basis. */
+  rule_basis?: string;
   /** Escalation CODES only -- an enum, never a reason string derived from a ticket. */
   escalations?: string;
   captured_count?: number;

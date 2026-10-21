@@ -259,4 +259,42 @@ function assertSpendable(outcome: RefundOutcome, facts: LedgerFacts): void {
   }
 }
 
+
+export interface RuleTrace {
+  rule_id: string;
+  matched: boolean;
+  /** Present on the rule that won. The others did not run their `then`. */
+  outcome?: { decision: RefundDecision; amount_inr: number; reason: RefundReason };
+}
+
+/**
+ * Every rule in order, which matched, and which one won.
+ *
+ * The logs already say what was decided. The question at 3am is why THIS user
+ * got money and that one did not, and answering it means knowing which rules
+ * were considered and passed over -- the counterfactual, which no log line
+ * carries. Same evaluation order as evaluateRefund, so the trace cannot
+ * describe a decision the gate would not make.
+ */
+export function explainRefund(facts: LedgerFacts, claim: ClaimType): RuleTrace[] {
+  let decided = false;
+
+  return RULES.map((rule) => {
+    const matched = !decided && rule.when(facts, claim);
+    if (!matched) return { rule_id: rule.id, matched: false };
+
+    decided = true;
+    const outcome = rule.then(facts);
+    return {
+      rule_id: rule.id,
+      matched: true,
+      outcome: {
+        decision: outcome.decision,
+        amount_inr: outcome.amount_inr,
+        reason: outcome.reason,
+      },
+    };
+  });
+}
+
 export const POLICY_CONSTANTS = { REMORSE_WINDOW_HOURS, REMORSE_MAX_APP_OPENS } as const;

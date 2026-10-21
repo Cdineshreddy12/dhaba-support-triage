@@ -3,6 +3,9 @@ import { randomUUID } from 'node:crypto';
 import { existsSync } from 'node:fs';
 import { loadConfig, Config } from './config.js';
 import { Ticket } from './domain/ticket.js';
+import { deriveLedger } from './domain/ledger.js';
+import { explainRefund } from './domain/refund-policy.js';
+import { deriveEscalations } from './domain/escalation.js';
 import { TriageResponse } from './domain/triage.js';
 import { createLogger, Logger, LogLevel } from './log.js';
 import { AnthropicProvider } from './llm/anthropic.js';
@@ -73,7 +76,7 @@ export function buildServer(options: BuildOptions = {}): FastifyInstance {
 
   app.get('/', async () => ({
     service: 'dhaba-support-triage',
-    endpoints: ['POST /triage', 'GET /metrics', 'GET /healthz', 'GET /readyz'],
+    endpoints: ['POST /triage', 'POST /triage/explain?claim=<claim_type>', 'GET /metrics', 'GET /healthz', 'GET /readyz'],
   }));
 
   app.get('/healthz', async () => ({ status: 'ok' }));
@@ -87,6 +90,41 @@ export function buildServer(options: BuildOptions = {}): FastifyInstance {
     model: config.mode === 'live' ? config.model : null,
     replay_fixtures_present: existsSync('fixtures/replay'),
   }));
+
+  /**
+   * Why a ticket got the money decision it did, including the rules that did
+   * NOT fire. Pure: it re-derives from the ticket and calls no model, so it is
+   * safe to run against a live incident and costs nothing.
+   */
+  app.post('/triage/explain', async (request, reply) => {
+    const parsed = Ticket.safeParse(request.body);
+    if (!parsed.success) {
+      return reply.code(400).send({ error: 'invalid_ticket' });
+    }
+
+    const facts = deriveLedger(parsed.data);
+    const rules = explainRefund(facts, (request.query as { claim?: string }).claim as never);
+
+    return reply.send({
+      ticket_id: parsed.data.id,
+      ledger: {
+        captured: facts.captured.map((p) => ({ id: p.id, amount_inr: p.amount_inr, at: p.at })),
+        captured_total_inr: facts.captured_total_inr,
+        uncaptured: facts.uncaptured.map((p) => ({ id: p.id, status: p.status })),
+        hours_since_last_capture:
+          facts.hours_since_last_capture === null
+            ? null
+            : Number(facts.hours_since_last_capture.toFixed(2)),
+        app_opens_since_renewal: facts.app_opens_since_renewal,
+        duplicate_capture: facts.duplicate_capture,
+        entitlement_lapsed: facts.entitlement_lapsed,
+        payment_pending: facts.payment_pending,
+      },
+      escalations: deriveEscalations(facts),
+      rules,
+      decided_by: rules.find((r) => r.matched)?.rule_id ?? null,
+    });
+  });
 
   app.post('/triage', async (request, reply) => {
     const started = Date.now();
