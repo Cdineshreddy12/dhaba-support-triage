@@ -18,7 +18,7 @@ async function runAllAndCaptureLogs(): Promise<string> {
     provider: new ReplayProvider(),
     guard: new IdempotencyGuard(new InMemoryDecisionStore()),
     logger,
-    confidenceFloor: 0.55,
+    confidenceFloor: 0.6,
   });
   for (const t of ALL_TICKETS) await service.triage(t, `req-${t.id}`);
   return JSON.stringify(lines);
@@ -66,7 +66,7 @@ describe('logs carry no person or company', () => {
       provider: new ReplayProvider(),
       guard: new IdempotencyGuard(new InMemoryDecisionStore()),
       logger,
-      confidenceFloor: 0.55,
+      confidenceFloor: 0.6,
     });
     const result = await service.triage(ALL_TICKETS[0]!, 'req-1');
     const logs = JSON.stringify(lines);
@@ -83,7 +83,7 @@ describe('logs are enough to explain a refund without opening the ticket', () =>
       provider: new ReplayProvider(),
       guard: new IdempotencyGuard(new InMemoryDecisionStore()),
       logger,
-      confidenceFloor: 0.55,
+      confidenceFloor: 0.6,
     });
     await service.triage(ALL_TICKETS.find((t) => t.id === 'T-1006')!, 'req-6');
 

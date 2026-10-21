@@ -13,7 +13,7 @@ function service() {
     provider: new ReplayProvider(),
     guard: new IdempotencyGuard(new InMemoryDecisionStore()),
     logger,
-    confidenceFloor: 0.55,
+    confidenceFloor: 0.6,
   });
 }
 

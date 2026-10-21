@@ -20,7 +20,7 @@ const service = new TriageService({
   provider: new ReplayProvider(),
   guard: new IdempotencyGuard(new InMemoryDecisionStore()),
   logger: createLogger('error'),
-  confidenceFloor: Number(process.env.TRIAGE_CONFIDENCE_FLOOR ?? 0.55),
+  confidenceFloor: Number(process.env.TRIAGE_CONFIDENCE_FLOOR ?? 0.6),
 });
 
 const results = [];

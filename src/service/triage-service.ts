@@ -71,6 +71,7 @@ export class TriageService {
       ticket_id: ticket.id,
       category: verdict.category,
       severity: applySeverityFloors(verdict.severity, escalations),
+      claim_type: verdict.claim_type,
       refund: {
         decision: refund.decision,
         amount_inr: refund.amount_inr,
@@ -101,7 +102,16 @@ export class TriageService {
     };
   }
 
-  /** Any one of these is enough. Unsure always means a person, never a guess. */
+  /**
+   * Any one of these is enough. Unsure always means a person, never a guess.
+   *
+   * The first condition is the one that does not depend on a model. Swapping
+   * claude-opus-5 for claude-sonnet-5 changed `verdict.needs_human` on T-1012
+   * -- the "refund me or I leave 1 star" ticket -- from true to false, which
+   * would have auto-paid a coercion attempt with nobody reading it. Whether
+   * money leaving the account deserves review is not a judgement to delegate
+   * to whichever model is configured this week.
+   */
   private needsHuman(
     verdict: ModelVerdict,
     refund: RefundOutcome,
@@ -109,6 +119,7 @@ export class TriageService {
     degraded: Degradation,
   ): boolean {
     return (
+      refund.decision === 'refund' ||
       verdict.needs_human ||
       refund.requires_human ||
       verdict.confidence < this.opts.confidenceFloor ||

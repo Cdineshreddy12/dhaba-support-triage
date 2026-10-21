@@ -40,10 +40,15 @@ export function loadConfig(): Config {
   return {
     mode: requested === 'live' ? 'live' : 'replay',
     apiKey,
-    model: process.env.TRIAGE_MODEL ?? 'claude-opus-5',
+    model: process.env.TRIAGE_MODEL ?? 'claude-sonnet-5',
     effort: (process.env.TRIAGE_EFFORT as Config['effort']) ?? 'medium',
     port: Number(process.env.PORT ?? 3000),
     logLevel: process.env.LOG_LEVEL ?? 'info',
-    confidenceFloor: Number(process.env.TRIAGE_CONFIDENCE_FLOOR ?? 0.55),
+    // 0.6 rather than 0.55: T-1004 ("cancel", one word, 7 minutes after a
+    // trial) comes back at exactly 0.55, and a classification the model itself
+    // rates a coin flip is not one to act on. Calibrated against the only
+    // genuinely ambiguous ticket in the set, so it wants re-tuning on real
+    // volume -- see the open questions in the README.
+    confidenceFloor: Number(process.env.TRIAGE_CONFIDENCE_FLOOR ?? 0.6),
   };
 }

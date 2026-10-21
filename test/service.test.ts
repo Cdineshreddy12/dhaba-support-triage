@@ -15,7 +15,7 @@ function build(provider: ModelProvider = new ReplayProvider()) {
     provider: counting,
     guard: new IdempotencyGuard(new InMemoryDecisionStore()),
     logger,
-    confidenceFloor: 0.55,
+    confidenceFloor: 0.6,
     now: () => new Date('2026-09-10T00:00:00.000Z'),
   });
   return { service, provider: counting, lines };
@@ -58,6 +58,28 @@ describe('the same ticket id must not be decided twice', () => {
     // Five requests, one refundable ticket, one refund's worth of money.
     expect(total / payouts.length).toBe(1499);
     expect(new Set(runs.map((r) => r.refund.rule_id)).size).toBe(1);
+  });
+});
+
+describe('money never leaves without a person', () => {
+  // Regression. Under claude-opus-5 the model set needs_human itself on T-1012
+  // (the "refund me or I leave 1 star" ticket). Under claude-sonnet-5 it did
+  // not, and confidence sat above the floor, so the refund auto-approved with
+  // nobody reading it. Routing money for review must not depend on which model
+  // is configured.
+  it.each(ALL_TICKETS.map((t) => t.id))('%s: a refund always requires a human', async (id) => {
+    const { service } = build();
+    const result = await service.triage(ticket(id), `req-money-${id}`);
+    if (result.refund.decision === 'refund') {
+      expect(result.needs_human, `${id} refunds ₹${result.refund.amount_inr} unreviewed`).toBe(true);
+    }
+  });
+
+  it('T-1012 is reviewed even when the model says it need not be', async () => {
+    const { service } = build();
+    const result = await service.triage(ticket('T-1012'), 'req-coercion');
+    expect(result.refund.decision).toBe('refund');
+    expect(result.needs_human).toBe(true);
   });
 });
 

@@ -6,7 +6,7 @@ import { loadConfig } from '../src/config.js';
 import { ticket } from './helpers.js';
 
 const app = buildServer({
-  config: { ...loadConfig(), mode: 'replay', apiKey: null, confidenceFloor: 0.55 },
+  config: { ...loadConfig(), mode: 'replay', apiKey: null, confidenceFloor: 0.6 },
   provider: new ReplayProvider(),
   logger: createLogger('error'), // keep test output readable
 });
