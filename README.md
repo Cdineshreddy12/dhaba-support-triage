@@ -116,8 +116,9 @@ fields, `type` and `status` — I modelled the data.
 
 ## Task 2
 
-From `npm run triage:all`. Pinned to real output by `test/readme-accuracy.test.ts`,
-so this table cannot drift from the code.
+Decisions from `npm run triage:all`; the "what they wrote" column is my
+one-line summary of each ticket. Everything else is pinned to real output by
+`test/readme-accuracy.test.ts`, so it cannot drift from the code.
 
 ✓ = goes to a human · ⚠ = contains text aimed at the assistant
 

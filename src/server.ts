@@ -55,6 +55,14 @@ export function buildServer(options: BuildOptions = {}): FastifyInstance {
   const webDist = resolve('web/dist');
   if (existsSync(webDist)) {
     app.register(fastifyStatic, { root: webDist, prefix: '/' });
+  } else {
+    // Without this, `npm run dev` then opening the browser is a bare 404 with
+    // nothing saying the console is a separate build.
+    app.get('/', async () => ({
+      service: 'dhaba-support-triage',
+      endpoints: ['POST /triage', 'GET /tickets', 'GET /healthz', 'GET /readyz'],
+      console: 'not built — run `npm run console`',
+    }));
   }
 
   /** Demo data source for the console: the fixture inbox, unmodified. */
