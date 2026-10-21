@@ -4,6 +4,19 @@
 category, severity, a refund decision, a reply draft in the user's language,
 `needs_human`, and confidence.
 
+## Layout
+
+TypeScript · Fastify 5 · Zod 4 · Vitest 2 · `@anthropic-ai/sdk` · Claude Sonnet 5
+
+```
+src/domain/   schemas, ledger derivation, refund gate, escalations
+src/llm/      prompt, provider interface, Anthropic + replay providers
+src/service/  orchestration, idempotency, load shedding, metrics, reply assembly
+src/log.ts    the redacting logger
+fixtures/     the 12 tickets and recorded model responses (see __recorded)
+docs/         decisions.md
+```
+
 ## Run
 
 Node 20+. No API key needed; replay is the default.
@@ -270,18 +283,3 @@ ledger: captured [pay_I2 ₹249] · uncaptured [pay_I1 failed] · duplicate_capt
 
 `test/explain.test.ts` asserts the trace can never name a different winner than
 `evaluateRefund` — a debugging view that disagrees with the code gets believed.
-
----
-
-## Layout
-
-TypeScript · Fastify 5 · Zod 4 · Vitest 2 · `@anthropic-ai/sdk` · Claude Sonnet 5
-
-```
-src/domain/   schemas, ledger derivation, refund gate, escalations
-src/llm/      prompt, provider interface, Anthropic + replay providers
-src/service/  orchestration, idempotency, load shedding, metrics, reply assembly
-src/log.ts    the redacting logger
-fixtures/     the 12 tickets and recorded model responses (see __recorded)
-docs/         decisions.md
-```
