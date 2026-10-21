@@ -436,8 +436,8 @@ from my direction, in the session the commit history records. I was deciding
 architecture, catching defects, and rejecting work rather than typing
 implementation.
 
-Rough honest split: **~85% agent-written, ~15% mine** — the latter concentrated
-in the places where being wrong is expensive, below.
+Rough honest split: **~95% agent-written.** The remainder is corrections,
+rejections, and the review pass described below — not authorship.
 
 Claude Opus 5 is also the model the service calls at runtime.
 
@@ -508,24 +508,49 @@ nothing. This is the class of error an agent cannot catch by inspecting its own
 output, and the reason `npm run typecheck` runs on every file rather than at the
 end.
 
-### One part written by hand
+### One part not left to an agent
 
-**The refund rule table in `src/domain/refund-policy.ts`.**
+Writing the straight answer: **no part of this was typed by hand instead of
+being generated.** An agent produced essentially all of it. Claiming otherwise
+would be easy to write and impossible to defend in the pairing session.
 
-Branch: `handwritten-refund-rules`, with the agent-written version stubbed out
-and the tests left red as the specification.
+What I did instead was isolate the one file where being wrong is most expensive
+and work it separately, which is visible in the history as the
+`handwritten-refund-rules` branch: the generated rule table was stubbed out, the
+tests left red as the specification, and the table rebuilt rule by rule against
+them. Each rule had to earn its tests back.
 
-Directing an agent was slower for a genuine reason. The table is ~60 lines, but
-every row is a sentence about when Dhaba does and does not return money, and the
-ordering *is* the logic — `R0_FRAUD_TO_HUMAN` sitting above `R5_REMORSE_WINDOW`
-is a policy decision about elder fraud, not a formatting choice. Specifying that
-precisely enough for an agent means writing the policy in prose first, then
-having it translated, then checking the translation against the prose. Writing
-the rules directly skips two of those three steps.
+That was worth the detour, and not because the second version differs much from
+the first — it barely does. It is because of what the pass surfaced.
 
-The other half is that this is the part I will be asked to change live, under
-discussion, with someone watching. Owning every branch of it is the difference
-between editing a row and reading my own code back to myself.
+**Reviewing the rules, not running them, found a live bug in the money path.**
+
+`hours_since_last_capture` was derived from a `Math.abs` helper. So a capture
+timestamped *after* the ticket produced a small **positive** number, and
+`R5_REMORSE_WINDOW` tests `<= 72` — true for that number. A charge that had not
+happened yet read as one made moments ago, and the window refunded it in full.
+On T-1006's shape that is ₹1499 out of the door. Clock skew between billing and
+the help form, a backfilled payment, or a charge landing while a ticket waits in
+a queue are each enough to produce that ordering.
+
+**Every test passed before and after.** No fixture ticket has a capture after
+its `received_at`, so nothing in the suite pointed at it, and the suite was
+written from the same tickets — a test written against the data cannot find a
+case the data does not contain. It was found by reading the comparison and
+asking which direction time ran.
+
+Fixed by splitting the helper: `hoursBetween` keeps `Math.abs` for spacing
+between events whose order is already known, `hoursElapsed` is signed and feeds
+the window, and `R5` guards `>= 0` so the policy does not depend on the ledger
+being well-behaved. The regression test was verified by reintroducing the bug
+and confirming it fails — a test that passes either way asserts nothing.
+
+So the honest version of this bullet: the value was not in typing the rules. It
+was that going through them slowly, as their author rather than their reader,
+was the only thing in the whole build that found a defect no test would have.
+
+It is also the part I expect to be asked to change live, which is the other
+reason to own it line by line.
 
 ---
 

@@ -90,3 +90,36 @@ had was the forbidden one.
 **verdict:** corrected in the prompt, not in post-processing — a filter on the
 output would catch the phrasing while leaving the belief that produced it.
 Re-recorded and diffed. See the following commit.
+## 2026-10-21 — a bug reading found that no test could have
+
+**what I asked for:** rewrite the refund rule table rule by rule against the
+red tests, on a branch, rather than keep the generated version.
+
+**what came back:** rules that passed all 58 tests. Barely different from the
+generated version.
+
+**what the pass actually surfaced:** reading `R5_REMORSE_WINDOW`'s condition —
+not running it — the comparison `f.hours_since_last_capture <= 72` raised the
+question of which direction time ran. It came from a `Math.abs` helper. A
+capture timestamped *after* the ticket yields a small positive number, which
+satisfies `<= 72`, so a charge that had not happened yet was read as fresh and
+refunded in full. ~Rs 1499 on T-1006's shape.
+
+**why no test caught it:** no fixture ticket has a capture later than its
+`received_at`, and every test in the suite was written from those twelve
+tickets. A suite derived from the data cannot find a case the data does not
+contain. Both the generated rules and the rewritten ones were green throughout.
+
+**verdict:** fixed. `hoursBetween` keeps `Math.abs` for spacing between events
+whose order is already known; `hoursElapsed` is signed and feeds the window; R5
+guards `>= 0` so the policy does not rely on the ledger behaving. Regression
+test verified by reintroducing the bug and confirming it fails both assertions.
+
+**the general point:** the two defects before this one were caught by tooling
+(`tsc`) and by reading output against the ledger. This one was only reachable by
+reading the code as its author. That is the argument for doing a slow pass over
+the file where being wrong costs money, even when an agent's version of it
+passes everything you have.
+
+**commits:** `fc7decf` (rules), then the fix, merged as `merge: hand-written
+refund rule table, and a time-comparison bug it surfaced`.
