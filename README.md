@@ -57,6 +57,55 @@ npx vitest run test/explain.test.ts          # the rule trace matches the gate
 Live model: `cp .env.example .env`, set `ANTHROPIC_API_KEY` and `TRIAGE_MODE=live`.
 CI runs on every push with no key configured.
 
+### What the model is actually for
+
+Two things, and nothing else.
+
+**Comprehension in.** Turning *"bhai maine 249 pay kiya, paisa kat gaya bank se,
+but app abhi bhi free version dikha raha hai"* into `payment_not_reflected` +
+`hinglish`. No regex does that, and the inbox is English, Hinglish, one-word and
+angry by design.
+
+**Composition out.** Writing back in that language and register.
+
+Everything between those two points is code. See it by running the same twelve
+tickets with every model call shed:
+
+```bash
+npm run triage:all              # 12 tickets, 10 to a human, 3 refunds, ₹1,997
+npm run triage:all -- --no-model  # 12 tickets, 12 to a human, 0 refunds, ₹0
+```
+
+On T-1005 the difference is:
+
+| | with the model | with it shed |
+|---|---|---|
+| category | `billing_payment_not_activated` | `other` |
+| claim_type | `payment_not_reflected` | `no_billing_claim` |
+| language | **hinglish** | en |
+| confidence | 0.75 | 0 |
+| reply | *"Samajh gaya, aapne payment kiya aur app abhi bhi free version dikha raha…"* | *"Thanks for writing in. We have your message…"* |
+| **refund** | **₹0** | **₹0** |
+| **needs_human** | **true** | **true** |
+
+What is lost is the *reading* and the *reply*. What is unchanged is the money
+and the routing — because neither ever consulted the model.
+
+**The precise version, since the loose one does not survive a follow-up.** The
+model's `claim_type` selects *which rule the ledger is asked*: `no_billing_claim`
+routes to `R8`, `unwanted_renewal` to `R5`, and on T-1006 those are ₹0 and
+₹1499. So it does influence the question. What it cannot do is answer it — it
+names no amount, and every amount a claim could unlock is bounded by what was
+actually captured. `test/refund-gate.test.ts` runs T-1003 through all eight
+claim types and gets ₹0 every time, because the ledger supports no payout
+whichever question you ask.
+
+**The model decides which question to put to the ledger. The ledger decides the
+answer.**
+
+With every call shed the system refuses to pay anything and sends all twelve to
+a person. That is the correct direction to fail in.
+
 **Where the output comes from with no key.** Two halves, and only one of them
 needed a model. The `category`, `severity`, `claim_type`, `confidence` and reply
 drafts are *recorded* `claude-sonnet-5` responses in `fixtures/replay/`, each

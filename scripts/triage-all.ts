@@ -13,16 +13,23 @@ import { ReplayProvider } from '../src/llm/replay.js';
 import { createLogger } from '../src/log.js';
 import { IdempotencyGuard, InMemoryDecisionStore } from '../src/service/idempotency.js';
 import { TriageService } from '../src/service/triage-service.js';
+import { LoadShedder } from '../src/service/load-shedder.js';
 import type { TriageResponse } from '../src/domain/triage.js';
 
 const raw = JSON.parse(readFileSync('fixtures/dhaba_tickets.json', 'utf8')) as { tickets: unknown[] };
 const tickets = raw.tickets.map((t) => Ticket.parse(t));
+
+// --no-model sheds every model call, so the same twelve tickets run on the
+// ledger and the rule table alone. Diff the two tables to see what the model
+// is actually for, and what it has no say in.
+const withoutModel = process.argv.includes('--no-model');
 
 const service = new TriageService({
   provider: new ReplayProvider(),
   guard: new IdempotencyGuard(new InMemoryDecisionStore()),
   logger: createLogger('error'),
   confidenceFloor: Number(process.env.TRIAGE_CONFIDENCE_FLOOR ?? 0.6),
+  ...(withoutModel && { shedder: new LoadShedder(0) }),
 });
 
 const results: TriageResponse[] = [];
@@ -135,10 +142,13 @@ function printTable(): void {
       `${bold(String(refunds))} refunds   ${green('₹' + total.toLocaleString('en-IN'))}\n`,
   );
   const modes = [...new Set(results.map((r) => r.meta.mode))].join(', ');
-  console.log(
-    dim(`  mode: ${modes} — categories, severities and drafts are recorded model output`),
-  );
-  console.log(dim('  (fixtures/replay, see __recorded); the money columns are computed live'));
+  if (withoutModel) {
+    console.log(dim(`  mode: ${modes} — every model call shed, so no claim type was produced`));
+    console.log(dim('  and nothing can be refunded. The ledger still decided; it just was not asked.'));
+  } else {
+    console.log(dim(`  mode: ${modes} — categories, severities and drafts are recorded model`));
+    console.log(dim('  output (fixtures/replay, see __recorded); the money is computed every run'));
+  }
   console.log(dim('  ✓ needs a human    ⚠ contains text aimed at the assistant'));
   console.log(dim('  --markdown for the README table    --json for full responses\n'));
 }
