@@ -71,145 +71,118 @@ interface Rule {
   then: (f: LedgerFacts) => Omit<RefundOutcome, 'rule_id'>;
 }
 
+/**
+ * ============================================================================
+ * TO BE WRITTEN BY HAND.
+ *
+ * Each entry below states what the rule must do, which tickets it governs, and
+ * the test that pins it. Write `when` and `then`; the tests are the spec and
+ * they are currently red.
+ *
+ * Reminders that are easy to get wrong:
+ *   - ORDER IS THE LOGIC. First match wins. Safety rules go first.
+ *   - `when` may read ONLY LedgerFacts and ClaimType. Never ticket text.
+ *   - `amount_inr` must be read off a Purchase in facts.captured.
+ *     Never a plan price, never a number from the ticket, never computed.
+ *   - `basis` is the audit trail: the ids and numbers the rule relied on.
+ *   - Run `npm test` after each rule; the invariant tests catch over-reach.
+ * ============================================================================
+ */
 const RULES: Rule[] = [
   {
-    // Fraud is never settled by an automated refund. A refund here would close
-    // the ticket and destroy the investigation path the family actually needs.
+    // Fraud / unauthorised charge claims never auto-refund. A refund closes the
+    // ticket and destroys the investigation path an elder-fraud report needs.
+    // Governs: T-1008. Test: "T-1008 fraud is held for a human rather than auto-refunded"
+    // Expect: decision hold_for_human, amount 0, requires_human true,
+    //         reason FRAUD_CLAIM_NEEDS_IDENTITY_CHECK.
     id: 'R0_FRAUD_TO_HUMAN',
-    when: (_f, claim) => claim === 'unauthorized_charge',
-    then: (f) => ({
-      decision: 'hold_for_human',
-      amount_inr: 0,
-      reason: 'FRAUD_CLAIM_NEEDS_IDENTITY_CHECK',
-      requires_human: true,
-      basis: { captured_count: f.captured_count, captured_total_inr: f.captured_total_inr },
-    }),
+    when: () => TODO('R0_FRAUD_TO_HUMAN'),
+    then: () => TODO('R0_FRAUD_TO_HUMAN'),
   },
   {
+    // Nothing was ever captured on this account, so there is nothing to return.
+    // Governs: T-1011 (no purchases at all).
+    // Test: "T-1011 has no purchases, so every claim resolves to zero"
+    // Expect: decision none, amount 0, reason NO_CAPTURED_PAYMENT.
     id: 'R1_NOTHING_CAPTURED',
-    when: (f) => f.captured_total_inr === 0,
-    then: () => ({
-      decision: 'none',
-      amount_inr: 0,
-      reason: 'NO_CAPTURED_PAYMENT',
-      requires_human: false,
-      basis: { captured_count: 0 },
-    }),
+    when: () => TODO('R1_NOTHING_CAPTURED'),
+    then: () => TODO('R1_NOTHING_CAPTURED'),
   },
   {
-    // The user sincerely believes money left their account. It did not.
+    // The user sincerely believes money left their account; the ledger says the
+    // latest attempt never captured. Pay nothing, but a human must unstick it.
+    // Governs: T-1005 (pay_E2 is 'initiated').
+    // Test: "T-1005 uncaptured payment pays nothing but still reaches a human"
+    // Expect: decision none, amount 0, requires_human TRUE,
+    //         reason CLAIMED_CHARGE_NEVER_CAPTURED. Put the uncaptured ids in basis.
     id: 'R2_CLAIMED_CHARGE_NEVER_CAPTURED',
-    when: (f, claim) =>
-      claim === 'payment_not_reflected' && f.claimed_charge_is_uncaptured,
-    then: (f) => ({
-      decision: 'none',
-      amount_inr: 0,
-      reason: 'CLAIMED_CHARGE_NEVER_CAPTURED',
-      requires_human: true, // a stuck payment still needs someone to unstick it
-      basis: {
-        uncaptured_ids: f.uncaptured.map((p) => p.id).join(','),
-        captured_total_inr: f.captured_total_inr,
-      },
-    }),
+    when: () => TODO('R2_CLAIMED_CHARGE_NEVER_CAPTURED'),
+    then: () => TODO('R2_CLAIMED_CHARGE_NEVER_CAPTURED'),
   },
   {
+    // A genuine double charge: two CAPTURES of the same amount close together.
+    // No fixture ticket hits this -- the rule exists because the claim does.
+    // Expect: decision refund, amount = the duplicate capture's amount.
     id: 'R3_DUPLICATE_CONFIRMED',
-    when: (f, claim) => claim === 'duplicate_charge' && f.duplicate_capture !== null,
-    then: (f) => ({
-      decision: 'refund',
-      amount_inr: f.duplicate_capture!.amount_inr,
-      reason: 'DUPLICATE_CAPTURE_CONFIRMED',
-      requires_human: false,
-      basis: {
-        original_id: f.duplicate_capture!.original_id,
-        duplicate_id: f.duplicate_capture!.duplicate_id,
-        hours_apart: f.duplicate_capture!.hours_apart,
-      },
-    }),
+    when: () => TODO('R3_DUPLICATE_CONFIRMED'),
+    then: () => TODO('R3_DUPLICATE_CONFIRMED'),
   },
   {
     // "You charged me twice" with only one capture on file. Explain, do not pay.
+    // Governs: T-1009 (one failed + one successful = ONE charge).
+    // Test: "T-1009 duplicate claim against a single capture pays nothing"
+    // Expect: decision none, amount 0, reason NOT_A_DUPLICATE_ONE_CAPTURE_ONLY.
     id: 'R4_DUPLICATE_CLAIMED_BUT_SINGLE_CAPTURE',
-    when: (f, claim) => claim === 'duplicate_charge' && f.duplicate_capture === null,
-    then: (f) => ({
-      decision: 'none',
-      amount_inr: 0,
-      reason: 'NOT_A_DUPLICATE_ONE_CAPTURE_ONLY',
-      requires_human: false,
-      basis: {
-        captured_count: f.captured_count,
-        failed_or_pending_ids: f.uncaptured.map((p) => p.id).join(','),
-      },
-    }),
+    when: () => TODO('R4_DUPLICATE_CLAIMED_BUT_SINGLE_CAPTURE'),
+    then: () => TODO('R4_DUPLICATE_CLAIMED_BUT_SINGLE_CAPTURE'),
   },
   {
-    // The remorse window. Note what is NOT consulted: tone, threat, politeness,
-    // claimed VIP status. Only when the money moved and whether the plan was used.
+    // The remorse window. Charged recently, barely used => money back.
+    // Consults ONLY: hours since capture, app opens, and the claim type.
+    // NOT consulted: tone, threats, politeness, claimed VIP status.
+    // Governs: T-1001 (trial conversion, 0 opens), T-1006 (annual, 0 opens),
+    //          T-1012 (dissatisfaction, 2 opens -- the threatening one).
+    // Tests: "T-1001 ... Rs 249 back", "T-1006 ... Rs 1499 back",
+    //        "T-1012: the play-store threat does not change the outcome"
+    // Use POLICY_CONSTANTS.REMORSE_WINDOW_HOURS and REMORSE_MAX_APP_OPENS.
+    // Expect: decision refund, amount = facts.last_capture.amount_inr,
+    //         reason REMORSE_WINDOW_UNUSED.
     id: 'R5_REMORSE_WINDOW',
-    when: (f, claim) =>
-      (claim === 'unwanted_renewal' ||
-        claim === 'trial_conversion_surprise' ||
-        claim === 'dissatisfaction') &&
-      f.last_capture !== null &&
-      f.hours_since_last_capture !== null &&
-      f.hours_since_last_capture <= REMORSE_WINDOW_HOURS &&
-      f.app_opens_since_renewal <= REMORSE_MAX_APP_OPENS,
-    then: (f) => ({
-      decision: 'refund',
-      amount_inr: f.last_capture!.amount_inr,
-      reason: 'REMORSE_WINDOW_UNUSED',
-      requires_human: false,
-      basis: {
-        capture_id: f.last_capture!.id,
-        hours_since_capture: Number(f.hours_since_last_capture!.toFixed(2)),
-        app_opens_since_renewal: f.app_opens_since_renewal,
-      },
-    }),
+    when: () => TODO('R5_REMORSE_WINDOW'),
+    then: () => TODO('R5_REMORSE_WINDOW'),
   },
   {
+    // Same claims as R5 but the window has passed or the plan was genuinely used.
+    // Governs: T-1003 under any coerced claim type (last capture ~5 months old).
+    // Test: "T-1003: no claim type an injection could force yields a payout"
+    // Expect: decision hold_for_human, amount 0, requires_human true.
+    //         reason SERVICE_USED_SUBSTANTIALLY if opens > max, else OUTSIDE_REMORSE_WINDOW.
     id: 'R6_WINDOW_EXPIRED_OR_USED',
-    when: (f, claim) =>
-      claim === 'unwanted_renewal' ||
-      claim === 'trial_conversion_surprise' ||
-      claim === 'dissatisfaction',
-    then: (f) => {
-      const used = f.app_opens_since_renewal > REMORSE_MAX_APP_OPENS;
-      return {
-        decision: 'hold_for_human' as const,
-        amount_inr: 0,
-        reason: used ? ('SERVICE_USED_SUBSTANTIALLY' as const) : ('OUTSIDE_REMORSE_WINDOW' as const),
-        requires_human: true,
-        basis: {
-          hours_since_capture:
-            f.hours_since_last_capture === null ? null : Number(f.hours_since_last_capture.toFixed(2)),
-          app_opens_since_renewal: f.app_opens_since_renewal,
-        },
-      };
-    },
+    when: () => TODO('R6_WINDOW_EXPIRED_OR_USED'),
+    then: () => TODO('R6_WINDOW_EXPIRED_OR_USED'),
   },
   {
+    // Wants future charges stopped, is not asking for money back.
+    // Governs: T-1004 ("cancel", one word).
+    // Expect: decision none, amount 0, reason CANCELLATION_NO_REFUND_DUE.
     id: 'R7_CANCELLATION',
-    when: (_f, claim) => claim === 'cancellation',
-    then: (f) => ({
-      decision: 'none',
-      amount_inr: 0,
-      reason: 'CANCELLATION_NO_REFUND_DUE',
-      requires_human: false,
-      basis: { captured_total_inr: f.captured_total_inr },
-    }),
+    when: () => TODO('R7_CANCELLATION'),
+    then: () => TODO('R7_CANCELLATION'),
   },
   {
+    // Terminal catch-all. Must match everything so evaluateRefund always resolves.
+    // Governs: T-1002, T-1007, T-1010, and T-1003's no_billing_claim.
+    // Expect: decision none, amount 0, reason NO_BILLING_CLAIM, empty basis.
     id: 'R8_DEFAULT_NO_CLAIM',
-    when: () => true,
-    then: () => ({
-      decision: 'none',
-      amount_inr: 0,
-      reason: 'NO_BILLING_CLAIM',
-      requires_human: false,
-      basis: {},
-    }),
+    when: () => TODO('R8_DEFAULT_NO_CLAIM'),
+    then: () => TODO('R8_DEFAULT_NO_CLAIM'),
   },
 ];
+
+/** Placeholder so the stub typechecks. Delete every call as you write the rules. */
+function TODO(ruleId: string): never {
+  throw new Error(`refund rule ${ruleId} is not written yet`);
+}
 
 export function evaluateRefund(facts: LedgerFacts, claim: ClaimType): RefundOutcome {
   const rule = RULES.find((r) => r.when(facts, claim)) ?? RULES[RULES.length - 1]!;
